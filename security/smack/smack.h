@@ -104,7 +104,12 @@ struct socket_smack {
 	struct smack_known	*smk_out;	/* outbound label */
 	struct smack_known	*smk_in;	/* inbound label */
 	struct smack_known	*smk_packet;	/* TCP peer label */
+	int			smk_state;	/* State of the socket */
 };
+
+#define SMACK_SOCKET_UNSET	0
+#define SMACK_SOCKET_CIPSO	1
+#define SMACK_SOCKET_UNLABELED	2
 
 /*
  * Inode smack data

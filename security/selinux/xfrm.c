@@ -150,7 +150,8 @@ static int selinux_xfrm_delete(struct xfrm_sec_ctx *ctx)
  * LSM hook implementation that authorizes that a flow can use a xfrm policy
  * rule.
  */
-int selinux_xfrm_policy_lookup(struct xfrm_sec_ctx *ctx, u32 fl_secid, u8 dir)
+int selinux_xfrm_policy_lookup(struct xfrm_sec_ctx *ctx,
+				struct secids *fl_secid, u8 dir)
 {
 	int rc;
 
@@ -163,7 +164,7 @@ int selinux_xfrm_policy_lookup(struct xfrm_sec_ctx *ctx, u32 fl_secid, u8 dir)
 	if (!selinux_authorizable_ctx(ctx))
 		return -EINVAL;
 
-	rc = avc_has_perm(fl_secid, ctx->ctx_sid,
+	rc = avc_has_perm(fl_secid->selinux, ctx->ctx_sid,
 			  SECCLASS_ASSOCIATION, ASSOCIATION__POLMATCH, NULL);
 	return (rc == -EACCES ? -ESRCH : rc);
 }
@@ -196,13 +197,13 @@ int selinux_xfrm_state_pol_flow_match(struct xfrm_state *x,
 
 	state_sid = x->security->ctx_sid;
 
-	if (fl->flowi_secid != state_sid)
+	if (fl->flowi_secid.selinux != state_sid)
 		return 0;
 
 	/* We don't need a separate SA Vs. policy polmatch check since the SA
 	 * is now of the same label as the flow and a flow Vs. policy polmatch
 	 * check had already happened in selinux_xfrm_policy_lookup() above. */
-	return (avc_has_perm(fl->flowi_secid, state_sid,
+	return (avc_has_perm(fl->flowi_secid.selinux, state_sid,
 			    SECCLASS_ASSOCIATION, ASSOCIATION__SENDTO,
 			    NULL) ? 0 : 1);
 }
@@ -256,13 +257,14 @@ out:
  * LSM hook implementation that checks and/or returns the xfrm sid for the
  * incoming packet.
  */
-int selinux_xfrm_decode_session(struct sk_buff *skb, u32 *sid, int ckall)
+int selinux_xfrm_decode_session(struct sk_buff *skb, struct secids *sid,
+				int ckall)
 {
 	if (skb == NULL) {
-		*sid = SECSID_NULL;
+		sid->selinux = SECSID_NULL;
 		return 0;
 	}
-	return selinux_xfrm_skb_sid_ingress(skb, sid, ckall);
+	return selinux_xfrm_skb_sid_ingress(skb, &sid->selinux, ckall);
 }
 
 int selinux_xfrm_skb_sid(struct sk_buff *skb, u32 *sid)
@@ -339,7 +341,8 @@ int selinux_xfrm_state_alloc(struct xfrm_state *x,
  * on a secid.
  */
 int selinux_xfrm_state_alloc_acquire(struct xfrm_state *x,
-				     struct xfrm_sec_ctx *polsec, u32 secid)
+				     struct xfrm_sec_ctx *polsec,
+				     const struct secids *secid)
 {
 	int rc;
 	struct xfrm_sec_ctx *ctx;
@@ -349,10 +352,10 @@ int selinux_xfrm_state_alloc_acquire(struct xfrm_state *x,
 	if (!polsec)
 		return 0;
 
-	if (secid == 0)
+	if (!secid_valid(secid))
 		return -EINVAL;
 
-	rc = security_sid_to_context(secid, &ctx_str, &str_len);
+	rc = security_sid_to_context(secid->selinux, &ctx_str, &str_len);
 	if (rc)
 		return rc;
 
@@ -364,7 +367,7 @@ int selinux_xfrm_state_alloc_acquire(struct xfrm_state *x,
 
 	ctx->ctx_doi = XFRM_SC_DOI_LSM;
 	ctx->ctx_alg = XFRM_SC_ALG_SELINUX;
-	ctx->ctx_sid = secid;
+	ctx->ctx_sid = secid->selinux;
 	ctx->ctx_len = str_len;
 	memcpy(ctx->ctx_str, ctx_str, str_len);
 

@@ -141,17 +141,33 @@ static struct hlist_head *unix_sockets_unbound(void *addr)
 #ifdef CONFIG_SECURITY_NETWORK
 static void unix_get_secdata(struct scm_cookie *scm, struct sk_buff *skb)
 {
-	UNIXCB(skb).secid = scm->secid;
+	UNIXCB(skb).secid = scm->secid.secmark;
+#ifdef CONFIG_SECURITY_STACKING
+	secid_to_skb(&scm->secid, skb);
+#endif
 }
 
 static inline void unix_set_secdata(struct scm_cookie *scm, struct sk_buff *skb)
 {
-	scm->secid = UNIXCB(skb).secid;
+#ifdef CONFIG_SECURITY_STACKING
+	struct secids marks;
+
+	secid_from_skb(&marks, skb);
+
+	WARN_ON(marks.secmark != UNIXCB(skb).secid);
+
+	if (marks.secmark == UNIXCB(skb).secid)
+		scm->secid = marks;
+	else
+		secid_set(&scm->secid, UNIXCB(skb).secid);
+#else
+	scm->secid.secmark = UNIXCB(skb).secid;
+#endif
 }
 
 static inline bool unix_secdata_eq(struct scm_cookie *scm, struct sk_buff *skb)
 {
-	return (scm->secid == UNIXCB(skb).secid);
+	return (scm->secid.secmark == UNIXCB(skb).secid);
 }
 #else
 static inline void unix_get_secdata(struct scm_cookie *scm, struct sk_buff *skb)

@@ -743,6 +743,7 @@ static int check_kill_permission(int sig, struct siginfo *info,
 {
 	struct pid *sid;
 	int error;
+	struct secids secid;
 
 	if (!valid_signal(sig))
 		return -EINVAL;
