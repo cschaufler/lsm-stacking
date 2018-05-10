@@ -2017,6 +2017,7 @@ struct security_hook_list {
 struct lsm_blob_sizes {
 	int	lbs_cred;
 	int	lbs_file;
+	int	lbs_task;
 };
 
 /*
@@ -2082,6 +2083,7 @@ extern int lsm_cred_alloc(struct cred *cred, gfp_t gfp);
 
 #ifdef CONFIG_SECURITY
 void lsm_early_cred(struct cred *cred);
+void lsm_early_task(struct task_struct *task);
 #endif
 
 #endif /* ! __LINUX_LSM_HOOKS_H */
