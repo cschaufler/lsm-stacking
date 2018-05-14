@@ -441,7 +441,7 @@ int lsm_inode_alloc(struct inode *inode)
 		return 0;
 	}
 
-	inode->i_security = kmem_cache_zalloc(lsm_inode_cache, GFP_KERNEL);
+	inode->i_security = kmem_cache_zalloc(lsm_inode_cache, GFP_NOFS);
 	if (inode->i_security == NULL)
 		return -ENOMEM;
 	return 0;
