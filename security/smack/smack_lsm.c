@@ -4472,8 +4472,10 @@ static int smack_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
 
 static int smack_inode_getsecctx(struct inode *inode, void **ctx, u32 *ctxlen)
 {
-	int len = 0;
-	len = smack_inode_getsecurity(inode, XATTR_SMACK_SUFFIX, ctx, false);
+	int len;
+
+	len = smack_inode_getsecurity(inode, XATTR_SMACK_SUFFIX, ctx,
+				      IS_ENABLED(CONFIG_SECURITY_STACKING));
 
 	if (len < 0)
 		return len;
