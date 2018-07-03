@@ -1069,7 +1069,8 @@ static int xfrm_policy_match(const struct xfrm_policy *pol,
 
 	match = xfrm_selector_match(sel, fl, family);
 	if (match)
-		ret = security_xfrm_policy_lookup(pol->security, fl->flowi_secid,
+		ret = security_xfrm_policy_lookup(pol->security,
+						  fl->flowi_secid.common,
 						  dir);
 
 	return ret;
@@ -1182,7 +1183,7 @@ static struct xfrm_policy *xfrm_sk_policy_lookup(const struct sock *sk, int dir,
 				goto out;
 			}
 			err = security_xfrm_policy_lookup(pol->security,
-						      fl->flowi_secid,
+						      fl->flowi_secid.common,
 						      dir);
 			if (!err) {
 				if (!xfrm_pol_hold_rcu(pol))
@@ -2365,7 +2366,7 @@ int __xfrm_decode_session(struct sk_buff *skb, struct flowi *fl,
 		return -EAFNOSUPPORT;
 
 	afinfo->decode_session(skb, fl, reverse);
-	err = security_xfrm_decode_session(skb, &fl->flowi_secid);
+	err = security_xfrm_decode_session(skb, &fl->flowi_secid.common);
 	rcu_read_unlock();
 	return err;
 }
