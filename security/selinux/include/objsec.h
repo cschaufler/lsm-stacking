@@ -161,18 +161,30 @@ struct bpf_security_struct {
 extern struct lsm_blob_sizes selinux_blob_sizes;
 static inline struct task_security_struct *selinux_cred(const struct cred *cred)
 {
-	return cred->security;
+#ifdef CONFIG_SECURITY_STACKING
+	return cred->security + selinux_blob_sizes.lbs_cred;
+#else
+ 	return cred->security;
+#endif
 }
 
 static inline struct file_security_struct *selinux_file(const struct file *file)
 {
-	return file->f_security;
+#ifdef CONFIG_SECURITY_STACKING
+	return file->f_security + selinux_blob_sizes.lbs_file;
+#else
+ 	return file->f_security;
+#endif
 }
 
 static inline struct inode_security_struct *selinux_inode(
 						const struct inode *inode)
 {
-	return inode->i_security;
+#ifdef CONFIG_SECURITY_STACKING
+	return inode->i_security + selinux_blob_sizes.lbs_inode;
+#else
+ 	return inode->i_security;
+#endif
 }
 
 #endif /* _SELINUX_OBJSEC_H_ */
