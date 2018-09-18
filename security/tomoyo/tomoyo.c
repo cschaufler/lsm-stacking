@@ -509,6 +509,10 @@ static int tomoyo_socket_sendmsg(struct socket *sock, struct msghdr *msg,
 	return tomoyo_socket_sendmsg_permission(sock, msg, size);
 }
 
+struct lsm_blob_sizes tomoyo_blob_sizes = {
+	.lbs_cred = sizeof(struct tomoyo_domain_info *),
+};
+
 /*
  * tomoyo_security_ops is a "struct security_operations" which is used for
  * registering TOMOYO.
@@ -556,15 +560,26 @@ bool tomoyo_enabled;
  */
 static int __init tomoyo_init(void)
 {
+	static int finish;
 	struct cred *cred = (struct cred *) current_cred();
 	struct tomoyo_domain_info **blob;
 
-	if (!security_module_enable("tomoyo"))
+	if (!security_module_enable("tomoyo")) {
+		tomoyo_enabled = false;
 		return 0;
+	}
+	tomoyo_enabled = true;
+
+	if (!finish) {
+		security_add_blobs(&tomoyo_blob_sizes);
+		finish = 1;
+		return 0;
+	}
 
 	/* register ourselves with the security framework */
 	security_add_hooks(tomoyo_hooks, ARRAY_SIZE(tomoyo_hooks), "tomoyo");
 	printk(KERN_INFO "TOMOYO Linux initialized\n");
+	lsm_early_cred(cred);
 	blob = tomoyo_cred(cred);
 	*blob = &tomoyo_kernel_domain;
 	tomoyo_mm_init();
