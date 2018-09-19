@@ -4734,7 +4734,8 @@ static __init int smack_init(void)
 	struct cred *cred = (struct cred *) current->cred;
 	struct task_smack *tsp;
 
-	if (!security_module_enable("smack"))
+	if (!security_module_enable("smack",
+				IS_ENABLED(CONFIG_SECURITY_SMACK_STACKED)))
 		return 0;
 
 	if (!finish) {
