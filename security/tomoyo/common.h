@@ -1206,7 +1206,7 @@ static inline void tomoyo_put_group(struct tomoyo_group *group)
  */
 static inline struct tomoyo_domain_info **tomoyo_cred(const struct cred *cred)
 {
-	return (struct tomoyo_domain_info **)&cred->security;
+	return cred->security;
 }
 
 /**
