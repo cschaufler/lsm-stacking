@@ -363,7 +363,7 @@ static inline struct task_smack *smack_cred(const struct cred *cred)
 
 static inline struct smack_known **smack_file(const struct file *file)
 {
-	return (struct smack_known **)&file->f_security;
+	return file->f_security;
 }
 
 /*
