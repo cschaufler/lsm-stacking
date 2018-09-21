@@ -374,12 +374,12 @@ static inline struct inode_smack *smack_inode(const struct inode *inode)
 
 static inline struct smack_known **smack_msg_msg(const struct msg_msg *msg)
 {
-	return (struct smack_known **)&msg->security;
+	return msg->security;
 }
 
 static inline struct smack_known **smack_ipc(const struct kern_ipc_perm *ipc)
 {
-	return (struct smack_known **)&ipc->security;
+	return ipc->security;
 }
 
 /*
