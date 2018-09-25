@@ -1202,14 +1202,13 @@ void security_file_free(struct file *file)
 {
 	void *blob;
 
-	if (!lsm_file_cache)
-		return;
-
 	call_void_hook(file_free_security, file);
 
 	blob = file->f_security;
-	file->f_security = NULL;
-	kmem_cache_free(lsm_file_cache, blob);
+	if (blob) {
+		file->f_security = NULL;
+		kmem_cache_free(lsm_file_cache, blob);
+	}
 }
 
 int security_file_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
