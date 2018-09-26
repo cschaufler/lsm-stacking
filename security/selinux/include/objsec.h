@@ -180,6 +180,8 @@ static inline struct inode_security_struct *selinux_inode(
 						const struct inode *inode)
 {
 #ifdef CONFIG_SECURITY_STACKING
+	if (unlikely(!inode->i_security))
+		return NULL;
 	return inode->i_security + selinux_blob_sizes.lbs_inode;
 #else
 	return inode->i_security;

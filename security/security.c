@@ -267,7 +267,7 @@ EXPORT_SYMBOL(unregister_lsm_notifier);
  *
  * Returns 0, or -ENOMEM if memory can't be allocated.
  */
-int lsm_cred_alloc(struct cred *cred, gfp_t gfp)
+static int lsm_cred_alloc(struct cred *cred, gfp_t gfp)
 {
 	if (blob_sizes.lbs_cred == 0) {
 		cred->security = NULL;
@@ -286,7 +286,7 @@ int lsm_cred_alloc(struct cred *cred, gfp_t gfp)
  *
  * Allocate the cred blob for all the modules if it's not already there
  */
-void lsm_early_cred(struct cred *cred)
+void __init lsm_early_cred(struct cred *cred)
 {
 	int rc;
 
@@ -344,7 +344,7 @@ void __init security_add_blobs(struct lsm_blob_sizes *needed)
  *
  * Returns 0, or -ENOMEM if memory can't be allocated.
  */
-int lsm_file_alloc(struct file *file)
+static int lsm_file_alloc(struct file *file)
 {
 	if (!lsm_file_cache) {
 		file->f_security = NULL;
@@ -376,25 +376,6 @@ int lsm_inode_alloc(struct inode *inode)
 	if (inode->i_security == NULL)
 		return -ENOMEM;
 	return 0;
-}
-
-/**
- * lsm_early_inode - during initialization allocate a composite inode blob
- * @inode: the inode that needs a blob
- *
- * Allocate the inode blob for all the modules if it's not already there
- */
-void lsm_early_inode(struct inode *inode)
-{
-	int rc;
-
-	if (inode == NULL)
-		panic("%s: NULL inode.\n", __func__);
-	if (inode->i_security != NULL)
-		return;
-	rc = lsm_inode_alloc(inode);
-	if (rc)
-		panic("%s: Early inode alloc failed.\n", __func__);
 }
 
 /**
@@ -466,7 +447,7 @@ int lsm_msg_msg_alloc(struct msg_msg *mp)
  *
  * Allocate the task blob for all the modules if it's not already there
  */
-void lsm_early_task(struct task_struct *task)
+void __init lsm_early_task(struct task_struct *task)
 {
 	int rc;
 

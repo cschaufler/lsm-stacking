@@ -2095,13 +2095,11 @@ void __init loadpin_add_hooks(void);
 static inline void loadpin_add_hooks(void) { };
 #endif
 
-extern int lsm_cred_alloc(struct cred *cred, gfp_t gfp);
 extern int lsm_inode_alloc(struct inode *inode);
 
 #ifdef CONFIG_SECURITY
-void lsm_early_cred(struct cred *cred);
-void lsm_early_inode(struct inode *inode);
-void lsm_early_task(struct task_struct *task);
+void __init lsm_early_cred(struct cred *cred);
+void __init lsm_early_task(struct task_struct *task);
 #endif
 
 #endif /* ! __LINUX_LSM_HOOKS_H */
