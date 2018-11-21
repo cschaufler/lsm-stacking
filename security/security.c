@@ -304,7 +304,7 @@ static void __init ordered_lsm_init(void)
 	init_debug("inode blob size      = %d\n", blob_sizes.lbs_inode);
 	init_debug("ipc blob size        = %d\n", blob_sizes.lbs_ipc);
 #ifdef CONFIG_KEYS
-	init_debug("LSM: key blob size   = %d\n", blob_sizes.lbs_key);
+	init_debug("key blob size        = %d\n", blob_sizes.lbs_key);
 #endif /* CONFIG_KEYS */
 	init_debug("msg_msg blob size    = %d\n", blob_sizes.lbs_msg_msg);
 	init_debug("sock blob size       = %d\n", blob_sizes.lbs_sock);
