@@ -182,10 +182,15 @@ static inline const char *kernel_load_data_id_str(enum kernel_load_data_id id)
 
 #ifdef CONFIG_SECURITY
 
-struct security_mnt_opts {
+struct lsm_mnt_opts {
 	char **mnt_opts;
 	int *mnt_opts_flags;
 	int num_mnt_opts;
+};
+
+struct security_mnt_opts {
+	struct lsm_mnt_opts     selinux;
+	struct lsm_mnt_opts     smack;
 };
 
 int call_lsm_notifier(enum lsm_event event, void *data);
@@ -194,14 +199,13 @@ int unregister_lsm_notifier(struct notifier_block *nb);
 
 static inline void security_init_mnt_opts(struct security_mnt_opts *opts)
 {
-	opts->mnt_opts = NULL;
-	opts->mnt_opts_flags = NULL;
-	opts->num_mnt_opts = 0;
+	memset(opts, 0, sizeof(*opts));
 }
 
-static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
+static inline void lsm_free_mnt_opts(struct lsm_mnt_opts *opts)
 {
 	int i;
+
 	if (opts->mnt_opts)
 		for (i = 0; i < opts->num_mnt_opts; i++)
 			kfree(opts->mnt_opts[i]);
@@ -210,6 +214,17 @@ static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
 	kfree(opts->mnt_opts_flags);
 	opts->mnt_opts_flags = NULL;
 	opts->num_mnt_opts = 0;
+}
+
+static inline void security_free_mnt_opts(struct security_mnt_opts *all_opts)
+{
+	lsm_free_mnt_opts(&all_opts->selinux);
+	lsm_free_mnt_opts(&all_opts->smack);
+}
+
+static inline int security_num_mnt_opts(struct security_mnt_opts *all_opts)
+{
+	return all_opts->selinux.num_mnt_opts + all_opts->smack.num_mnt_opts;
 }
 
 /* prototypes */
@@ -258,14 +273,15 @@ int security_sb_mount(const char *dev_name, const struct path *path,
 int security_sb_umount(struct vfsmount *mnt, int flags);
 int security_sb_pivotroot(const struct path *old_path, const struct path *new_path);
 int security_sb_set_mnt_opts(struct super_block *sb,
-				struct security_mnt_opts *opts,
+				struct security_mnt_opts *all_opts,
 				unsigned long kern_flags,
 				unsigned long *set_kern_flags);
 int security_sb_clone_mnt_opts(const struct super_block *oldsb,
 				struct super_block *newsb,
 				unsigned long kern_flags,
 				unsigned long *set_kern_flags);
-int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts);
+int security_sb_parse_opts_str(char *options,
+				struct security_mnt_opts *all_opts);
 int security_dentry_init_security(struct dentry *dentry, int mode,
 					const struct qstr *name, void **ctx,
 					u32 *ctxlen);
@@ -423,11 +439,11 @@ static inline  int unregister_lsm_notifier(struct notifier_block *nb)
 	return 0;
 }
 
-static inline void security_init_mnt_opts(struct security_mnt_opts *opts)
+static inline void security_init_mnt_opts(struct security_mnt_opts *all_opts)
 {
 }
 
-static inline void security_free_mnt_opts(struct security_mnt_opts *opts)
+static inline void security_free_mnt_opts(struct security_mnt_opts *all_opts)
 {
 }
 
@@ -602,7 +618,7 @@ static inline int security_sb_pivotroot(const struct path *old_path,
 }
 
 static inline int security_sb_set_mnt_opts(struct super_block *sb,
-					   struct security_mnt_opts *opts,
+					   struct security_mnt_opts *all_opts,
 					   unsigned long kern_flags,
 					   unsigned long *set_kern_flags)
 {
@@ -617,7 +633,8 @@ static inline int security_sb_clone_mnt_opts(const struct super_block *oldsb,
 	return 0;
 }
 
-static inline int security_sb_parse_opts_str(char *options, struct security_mnt_opts *opts)
+static inline int security_sb_parse_opts_str(char *options,
+					struct security_mnt_opts *all_opts)
 {
 	return 0;
 }

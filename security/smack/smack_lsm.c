@@ -592,8 +592,9 @@ static int smack_sb_copy_data(char *orig, char *smackopts)
  * converts Smack specific mount options to generic security option format
  */
 static int smack_parse_opts_str(char *options,
-		struct security_mnt_opts *opts)
+		struct security_mnt_opts *all_opts)
 {
+	struct lsm_mnt_opts *opts = &all_opts->smack;
 	char *p;
 	char *fsdefault = NULL;
 	char *fsfloor = NULL;
@@ -719,10 +720,11 @@ out_err:
  * labels.
  */
 static int smack_set_mnt_opts(struct super_block *sb,
-		struct security_mnt_opts *opts,
+		struct security_mnt_opts *all_opts,
 		unsigned long kern_flags,
 		unsigned long *set_kern_flags)
 {
+	struct lsm_mnt_opts *opts = &all_opts->smack;
 	struct dentry *root = sb->s_root;
 	struct inode *inode = d_backing_inode(root);
 	struct superblock_smack *sp = smack_superblock(sb);

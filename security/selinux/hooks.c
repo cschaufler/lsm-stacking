@@ -543,15 +543,16 @@ out:
  * mount options, or whatever.
  */
 static int selinux_get_mnt_opts(const struct super_block *sb,
-				struct security_mnt_opts *opts)
+				struct security_mnt_opts *all_opts)
 {
 	int rc = 0, i;
 	struct superblock_security_struct *sbsec = selinux_superblock(sb);
+	struct lsm_mnt_opts *opts = &all_opts->selinux;
 	char *context = NULL;
 	u32 len;
 	char tmp;
 
-	security_init_mnt_opts(opts);
+	security_init_mnt_opts(all_opts);
 
 	if (!(sbsec->flags & SE_SBINITIALIZED))
 		return -EINVAL;
@@ -632,7 +633,7 @@ static int selinux_get_mnt_opts(const struct super_block *sb,
 	return 0;
 
 out_free:
-	security_free_mnt_opts(opts);
+	security_free_mnt_opts(all_opts);
 	return rc;
 }
 
@@ -661,11 +662,12 @@ static int bad_option(struct superblock_security_struct *sbsec, char flag,
  * labeling information.
  */
 static int selinux_set_mnt_opts(struct super_block *sb,
-				struct security_mnt_opts *opts,
+				struct security_mnt_opts *all_opts,
 				unsigned long kern_flags,
 				unsigned long *set_kern_flags)
 {
 	const struct cred *cred = current_cred();
+	struct lsm_mnt_opts *opts = &all_opts->selinux;
 	int rc = 0, i;
 	struct superblock_security_struct *sbsec = selinux_superblock(sb);
 	const char *name = sb->s_type->name;
@@ -1028,8 +1030,9 @@ out:
 }
 
 static int selinux_parse_opts_str(char *options,
-				  struct security_mnt_opts *opts)
+				  struct security_mnt_opts *all_opts)
 {
+	struct lsm_mnt_opts *opts = &all_opts->selinux;
 	char *p;
 	char *context = NULL, *defcontext = NULL;
 	char *fscontext = NULL, *rootcontext = NULL;
@@ -1140,7 +1143,7 @@ static int selinux_parse_opts_str(char *options,
 	return 0;
 
 out_err:
-	security_free_mnt_opts(opts);
+	security_free_mnt_opts(all_opts);
 	kfree(context);
 	kfree(defcontext);
 	kfree(fscontext);
@@ -1176,8 +1179,9 @@ out_err:
 }
 
 static void selinux_write_opts(struct seq_file *m,
-			       struct security_mnt_opts *opts)
+			       struct security_mnt_opts *all_opts)
 {
+	struct lsm_mnt_opts *opts = &all_opts->selinux;
 	int i;
 	char *prefix;
 
@@ -2783,7 +2787,8 @@ out:
 static int selinux_sb_remount(struct super_block *sb, void *data)
 {
 	int rc, i, *flags;
-	struct security_mnt_opts opts;
+	struct security_mnt_opts all_opts;
+	struct lsm_mnt_opts *opts = &all_opts.selinux;
 	char *secdata, **mount_options;
 	struct superblock_security_struct *sbsec = selinux_superblock(sb);
 
@@ -2796,7 +2801,7 @@ static int selinux_sb_remount(struct super_block *sb, void *data)
 	if (sb->s_type->fs_flags & FS_BINARY_MOUNTDATA)
 		return 0;
 
-	security_init_mnt_opts(&opts);
+	security_init_mnt_opts(&all_opts);
 	secdata = alloc_secdata();
 	if (!secdata)
 		return -ENOMEM;
@@ -2804,14 +2809,14 @@ static int selinux_sb_remount(struct super_block *sb, void *data)
 	if (rc)
 		goto out_free_secdata;
 
-	rc = selinux_parse_opts_str(secdata, &opts);
+	rc = selinux_parse_opts_str(secdata, &all_opts);
 	if (rc)
 		goto out_free_secdata;
 
-	mount_options = opts.mnt_opts;
-	flags = opts.mnt_opts_flags;
+	mount_options = opts->mnt_opts;
+	flags = opts->mnt_opts_flags;
 
-	for (i = 0; i < opts.num_mnt_opts; i++) {
+	for (i = 0; i < opts->num_mnt_opts; i++) {
 		u32 sid;
 
 		if (flags[i] == SBLABEL_MNT)
@@ -2854,7 +2859,7 @@ static int selinux_sb_remount(struct super_block *sb, void *data)
 
 	rc = 0;
 out_free_opts:
-	security_free_mnt_opts(&opts);
+	security_free_mnt_opts(&all_opts);
 out_free_secdata:
 	free_secdata(secdata);
 	return rc;
