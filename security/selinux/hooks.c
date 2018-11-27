@@ -4893,14 +4893,14 @@ static void selinux_sk_clone_security(const struct sock *sk, struct sock *newsk)
 	selinux_netlbl_sk_security_reset(newsksec);
 }
 
-static void selinux_sk_getsecid(struct sock *sk, u32 *secid)
+static void selinux_sk_getsecid(struct sock *sk, struct lsm_export *l)
 {
 	if (!sk)
-		*secid = SECINITSID_ANY_SOCKET;
+		selinux_export_secid(l, SECINITSID_ANY_SOCKET);
 	else {
 		struct sk_security_struct *sksec = selinux_sock(sk);
 
-		*secid = sksec->sid;
+		selinux_export_secid(l, sksec->sid);
 	}
 }
 

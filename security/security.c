@@ -2152,7 +2152,10 @@ EXPORT_SYMBOL(security_sk_clone);
 
 void security_sk_classify_flow(struct sock *sk, struct flowi *fl)
 {
-	call_void_hook(sk_getsecid, sk, &fl->flowi_secid);
+	struct lsm_export data = { .flags = LSM_EXPORT_NONE };
+
+	call_void_hook(sk_getsecid, sk, &data);
+	lsm_export_secid(&data, &fl->flowi_secid);
 }
 EXPORT_SYMBOL(security_sk_classify_flow);
 
