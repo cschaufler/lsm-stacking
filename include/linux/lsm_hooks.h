@@ -1699,7 +1699,7 @@ union security_list_options {
 	int (*sk_alloc_security)(struct sock *sk, int family, gfp_t priority);
 	void (*sk_free_security)(struct sock *sk);
 	void (*sk_clone_security)(const struct sock *sk, struct sock *newsk);
-	void (*sk_getsecid)(struct sock *sk, struct lsm_export *l);
+	void (*sk_getsecid)(struct sock *sk, u32 *secid);
 	void (*sock_graft)(struct sock *sk, struct socket *parent);
 	int (*inet_conn_request)(struct sock *sk, struct sk_buff *skb,
 					struct request_sock *req);
