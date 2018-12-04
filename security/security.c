@@ -46,7 +46,22 @@ static struct kmem_cache *lsm_file_cache;
 static struct kmem_cache *lsm_inode_cache;
 
 char *lsm_names;
-static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init;
+
+/* Socket blobs include infrastructure managed data */
+static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init = {
+	.lbs_sock = sizeof(struct lsm_export),
+};
+
+/**
+ * lsm_export_skb - pointer to the lsm_export associated with the skb
+ * @skb: the socket buffer
+ *
+ * Returns a pointer to the LSM managed data.
+ */
+struct lsm_export *lsm_export_skb(struct sk_buff *skb)
+{
+	return skb->sk->sk_security;
+}
 
 /* Boot-time LSM user choice */
 static __initdata const char *chosen_lsm_order;
