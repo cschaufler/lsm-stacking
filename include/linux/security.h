@@ -65,6 +65,7 @@ struct ctl_table;
 struct audit_krule;
 struct user_namespace;
 struct timezone;
+struct sk_buff;
 
 enum lsm_event {
 	LSM_POLICY_CHANGE,
@@ -92,6 +93,22 @@ static inline bool lsm_export_any(struct lsm_export *l)
 	return (((l->flags & LSM_EXPORT_SELINUX) && l->selinux) ||
 		((l->flags & LSM_EXPORT_SMACK) && l->smack) ||
 		((l->flags & LSM_EXPORT_APPARMOR) && l->apparmor));
+}
+
+static inline bool lsm_export_equal(struct lsm_export *l, struct lsm_export *m)
+{
+	if (l->flags != m->flags || l->flags == LSM_EXPORT_NONE)
+		return false;
+	if (l->flags & LSM_EXPORT_SELINUX &&
+	    (l->selinux != m->selinux || l->selinux == 0))
+		return false;
+	if (l->flags & LSM_EXPORT_SMACK &&
+	    (l->smack != m->smack || l->smack == 0))
+		return false;
+	if (l->flags & LSM_EXPORT_APPARMOR &&
+	    (l->apparmor != m->apparmor || l->apparmor == 0))
+		return false;
+	return true;
 }
 
 /**
@@ -137,6 +154,8 @@ static inline void lsm_export_to_all(struct lsm_export *data, u32 secid)
 		      LSM_EXPORT_APPARMOR;
 }
 
+extern struct lsm_export *lsm_export_skb(struct sk_buff *skb);
+
 /* These functions are in security/commoncap.c */
 extern int cap_capable(const struct cred *cred, struct user_namespace *ns,
 		       int cap, int audit);
@@ -168,7 +187,6 @@ extern int cap_task_setnice(struct task_struct *p, int nice);
 extern int cap_vm_enough_memory(struct mm_struct *mm, long pages);
 
 struct msghdr;
-struct sk_buff;
 struct sock;
 struct sockaddr;
 struct socket;
