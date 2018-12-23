@@ -1989,7 +1989,6 @@ EXPORT_SYMBOL(security_secid_to_secctx);
 
 int security_secctx_to_secid(struct lsm_context *cp, struct lsm_export *l)
 {
-
 	lsm_export_init(l);
 	return call_one_int_hook(secctx_to_secid, 0, cp, l);
 }
@@ -1997,7 +1996,11 @@ EXPORT_SYMBOL(security_secctx_to_secid);
 
 void security_release_secctx(char *secdata, u32 seclen)
 {
-	call_one_void_hook(release_secctx, secdata, seclen);
+	struct lsm_context lc;
+
+	lc.context = secdata;
+	lc.len = seclen;
+	call_one_void_hook(release_secctx, &lc);
 }
 EXPORT_SYMBOL(security_release_secctx);
 
