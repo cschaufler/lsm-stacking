@@ -1979,7 +1979,7 @@ int security_secid_to_secctx(struct lsm_export *l, char **secdata, u32 *seclen)
 	if (secdata)
 		*secdata = lc.context;
 	else
-		security_release_secctx(lc.context, lc.len);
+		security_release_secctx(&lc);
 	*seclen = lc.len;
 	return rc;
 }
@@ -1992,13 +1992,9 @@ int security_secctx_to_secid(struct lsm_context *cp, struct lsm_export *l)
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
 
-void security_release_secctx(char *secdata, u32 seclen)
+void security_release_secctx(struct lsm_context *cp)
 {
-	struct lsm_context lc;
-
-	lc.context = secdata;
-	lc.len = seclen;
-	call_one_void_hook(release_secctx, &lc);
+	call_one_void_hook(release_secctx, cp);
 }
 EXPORT_SYMBOL(security_release_secctx);
 

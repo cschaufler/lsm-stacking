@@ -1184,8 +1184,7 @@ static int audit_receive_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	struct audit_buffer	*ab;
 	u16			msg_type = nlh->nlmsg_type;
 	struct audit_sig_info   *sig_data;
-	char			*ctx = NULL;
-	u32			len;
+	struct lsm_context	lc = { .context = NULL, .len = 0, };
 
 	err = audit_netlink_ok(skb, msg_type);
 	if (err)
@@ -1416,27 +1415,26 @@ static int audit_receive_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 		break;
 	}
 	case AUDIT_SIGNAL_INFO:
-		len = 0;
 		if (lsm_export_any(&audit_sig_lsm)) {
-			err = security_secid_to_secctx(&audit_sig_lsm, &ctx,
-						       &len);
+			err = security_secid_to_secctx(&audit_sig_lsm,
+						       &lc.context, &lc.len);
 			if (err)
 				return err;
 		}
-		sig_data = kmalloc(sizeof(*sig_data) + len, GFP_KERNEL);
+		sig_data = kmalloc(sizeof(*sig_data) + lc.len, GFP_KERNEL);
 		if (!sig_data) {
 			if (lsm_export_any(&audit_sig_lsm))
-				security_release_secctx(ctx, len);
+				security_release_secctx(&lc);
 			return -ENOMEM;
 		}
 		sig_data->uid = from_kuid(&init_user_ns, audit_sig_uid);
 		sig_data->pid = audit_sig_pid;
 		if (lsm_export_any(&audit_sig_lsm)) {
-			memcpy(sig_data->ctx, ctx, len);
-			security_release_secctx(ctx, len);
+			memcpy(sig_data->ctx, lc.context, lc.len);
+			security_release_secctx(&lc);
 		}
 		audit_send_reply(skb, seq, AUDIT_SIGNAL_INFO, 0, 0,
-				 sig_data, sizeof(*sig_data) + len);
+				 sig_data, sizeof(*sig_data) + lc.len);
 		kfree(sig_data);
 		break;
 	case AUDIT_TTY_GET: {
@@ -2164,16 +2162,15 @@ void audit_log_name(struct audit_context *context, struct audit_names *n,
 				 MAJOR(n->rdev),
 				 MINOR(n->rdev));
 	if (lsm_export_any(&n->olsm)) {
-		char *ctx = NULL;
-		u32 len;
+		struct lsm_context lc;
 
-		if (security_secid_to_secctx(&n->olsm, &ctx, &len)) {
+		if (security_secid_to_secctx(&n->olsm, &lc.context, &lc.len)) {
 			audit_log_format(ab, " osid=(unknown)");
 			if (call_panic)
 				*call_panic = 2;
 		} else {
-			audit_log_format(ab, " obj=%s", ctx);
-			security_release_secctx(ctx, len);
+			audit_log_format(ab, " obj=%s", lc.context);
+			security_release_secctx(&lc);
 		}
 	}
 
@@ -2203,24 +2200,23 @@ void audit_log_name(struct audit_context *context, struct audit_names *n,
 
 int audit_log_task_context(struct audit_buffer *ab)
 {
-	char *ctx = NULL;
-	unsigned len;
 	int error;
 	struct lsm_export le;
+	struct lsm_context lc = { .context = NULL, };
 
 	security_task_getsecid(current, &le);
 	if (!lsm_export_any(&le))
 		return 0;
 
-	error = security_secid_to_secctx(&le, &ctx, &len);
+	error = security_secid_to_secctx(&le, &lc.context, &lc.len);
 	if (error) {
 		if (error != -EINVAL)
 			goto error_path;
 		return 0;
 	}
 
-	audit_log_format(ab, " subj=%s", ctx);
-	security_release_secctx(ctx, len);
+	audit_log_format(ab, " subj=%s", lc.context);
+	security_release_secctx(&lc);
 	return 0;
 
 error_path:

@@ -979,9 +979,8 @@ static int audit_log_pid_context(struct audit_context *context, pid_t pid,
 				 unsigned int sessionid,
 				 struct lsm_export *l, char *comm)
 {
+	struct lsm_context lc = { .context = NULL, };
 	struct audit_buffer *ab;
-	char *ctx = NULL;
-	u32 len;
 	int rc = 0;
 
 	ab = audit_log_start(context, GFP_KERNEL, AUDIT_OBJ_PID);
@@ -992,12 +991,12 @@ static int audit_log_pid_context(struct audit_context *context, pid_t pid,
 			 from_kuid(&init_user_ns, auid),
 			 from_kuid(&init_user_ns, uid), sessionid);
 	if (lsm_export_any(l)) {
-		if (security_secid_to_secctx(l, &ctx, &len)) {
+		if (security_secid_to_secctx(l, &lc.context, &lc.len)) {
 			audit_log_format(ab, " obj=(none)");
 			rc = 1;
 		} else {
-			audit_log_format(ab, " obj=%s", ctx);
-			security_release_secctx(ctx, len);
+			audit_log_format(ab, " obj=%s", lc.context);
+			security_release_secctx(&lc);
 		}
 	}
 	audit_log_format(ab, " ocomm=");
@@ -1206,14 +1205,13 @@ static void show_special(struct audit_context *context, int *call_panic)
 				 from_kgid(&init_user_ns, context->ipc.gid),
 				 context->ipc.mode);
 		if (lsm_export_any(l)) {
-			char *ctx = NULL;
-			u32 len;
-			if (security_secid_to_secctx(l, &ctx, &len)) {
+			struct lsm_context lc = { .context = NULL, };
+			if (security_secid_to_secctx(l, &lc.context, &lc.len)) {
 				audit_log_format(ab, " osid=(unknown)");
 				*call_panic = 1;
 			} else {
-				audit_log_format(ab, " obj=%s", ctx);
-				security_release_secctx(ctx, len);
+				audit_log_format(ab, " obj=%s", lc.context);
+				security_release_secctx(&lc);
 			}
 		}
 		if (context->ipc.has_perm) {
