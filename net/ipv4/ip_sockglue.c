@@ -138,7 +138,7 @@ static void ip_cmsg_recv_security(struct msghdr *msg, struct sk_buff *skb)
 	if (err)
 		return;
 
-	err = security_secid_to_secctx(&le, &lc.context, &lc.len);
+	err = security_secid_to_secctx(&le, &lc);
 	if (err)
 		return;
 
