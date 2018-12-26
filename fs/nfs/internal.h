@@ -306,20 +306,20 @@ nfs4_label_copy(struct nfs4_label *dst, struct nfs4_label *src)
 	if (!dst || !src)
 		return NULL;
 
-	if (src->len > NFS4_MAXLABELLEN)
+	if (src->context.len > NFS4_MAXLABELLEN)
 		return NULL;
 
 	dst->lfs = src->lfs;
 	dst->pi = src->pi;
-	dst->len = src->len;
-	memcpy(dst->label, src->label, src->len);
+	dst->context.len = src->context.len;
+	memcpy(dst->context.context, src->context.context, src->context.len);
 
 	return dst;
 }
 static inline void nfs4_label_free(struct nfs4_label *label)
 {
 	if (label) {
-		kfree(label->label);
+		kfree(label->context.context);
 		kfree(label);
 	}
 	return;
