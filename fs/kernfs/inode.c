@@ -370,7 +370,7 @@ static int kernfs_security_xattr_set(const struct xattr_handler *handler,
 	mutex_unlock(&kernfs_mutex);
 
 	if (lc.context)
-		security_release_secctx(lc.context, lc.len);
+		security_release_secctx(&lc);
 	return error;
 }
 

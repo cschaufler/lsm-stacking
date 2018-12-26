@@ -169,9 +169,8 @@ static void ct_seq_stop(struct seq_file *s, void *v)
 static void ct_show_secctx(struct seq_file *s, const struct nf_conn *ct)
 {
 	int ret;
-	u32 len;
-	char *secctx;
 	struct lsm_export le;
+	struct lsm_context lc;
 
 	/* Whichever LSM may be using the secmark */
 	lsm_export_init(&le);
@@ -179,13 +178,13 @@ static void ct_show_secctx(struct seq_file *s, const struct nf_conn *ct)
 	le.selinux = ct->secmark;
 	le.smack = ct->secmark;
 
-	ret = security_secid_to_secctx(&le, &secctx, &len);
+	ret = security_secid_to_secctx(&le, &lc.context, &lc.len);
 	if (ret)
 		return;
 
-	seq_printf(s, "secctx=%s ", secctx);
+	seq_printf(s, "secctx=%s ", lc.context);
 
-	security_release_secctx(secctx, len);
+	security_release_secctx(&lc);
 }
 #else
 static inline void ct_show_secctx(struct seq_file *s, const struct nf_conn *ct)

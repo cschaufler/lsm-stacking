@@ -131,20 +131,19 @@ static void ip_cmsg_recv_checksum(struct msghdr *msg, struct sk_buff *skb,
 static void ip_cmsg_recv_security(struct msghdr *msg, struct sk_buff *skb)
 {
 	struct lsm_export le;
-	char *secdata;
-	u32 seclen;
+	struct lsm_context lc;
 	int err;
 
 	err = security_socket_getpeersec_dgram(NULL, skb, &le);
 	if (err)
 		return;
 
-	err = security_secid_to_secctx(&le, &secdata, &seclen);
+	err = security_secid_to_secctx(&le, &lc.context, &lc.len);
 	if (err)
 		return;
 
-	put_cmsg(msg, SOL_IP, SCM_SECURITY, seclen, secdata);
-	security_release_secctx(secdata, seclen);
+	put_cmsg(msg, SOL_IP, SCM_SECURITY, lc.len, lc.context);
+	security_release_secctx(&lc);
 }
 
 static void ip_cmsg_recv_dstaddr(struct msghdr *msg, struct sk_buff *skb)

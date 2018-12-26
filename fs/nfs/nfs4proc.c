@@ -134,8 +134,13 @@ nfs4_label_init_security(struct inode *dir, struct dentry *dentry,
 static inline void
 nfs4_label_release_security(struct nfs4_label *label)
 {
-	if (label)
-		security_release_secctx(label->label, label->len);
+	struct lsm_context lc;	/* Scaffolding -Casey */
+
+	if (label) {
+		lc.context = label->label;
+		lc.len = label->len;
+		security_release_secctx(&lc);
+	}
 }
 static inline u32 *nfs4_bitmask(struct nfs_server *server, struct nfs4_label *label)
 {
