@@ -92,8 +92,7 @@ int apparmor_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp)
 	if (!label)
 		return -EINVAL;
 
-	/* scaffolding check - Casey */
-	if (cp)
+	if (!(l->flags & LSM_EXPORT_LENGTH))
 		len = aa_label_asxprint(&cp->context, root_ns, label,
 					FLAG_SHOW_MODE | FLAG_VIEW_SUBNS |
 					FLAG_HIDDEN_UNCONFINED | FLAG_ABS_ROOT,

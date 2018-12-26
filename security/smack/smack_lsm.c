@@ -4437,7 +4437,7 @@ static int smack_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp)
 	smack_import_secid(l, &secid);
 	skp = smack_from_secid(secid);
 
-	cp->context = skp->smk_known;
+	cp->context = (l->flags & LSM_EXPORT_LENGTH) ? NULL : skp->smk_known;
 	cp->len = strlen(skp->smk_known);
 	return 0;
 }

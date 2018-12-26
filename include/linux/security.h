@@ -78,10 +78,11 @@ struct lsm_export {
 	u32	apparmor;
 	u32	flags;
 };
-#define LSM_EXPORT_NONE		0x00
-#define LSM_EXPORT_SELINUX	0x01
-#define LSM_EXPORT_SMACK	0x02
-#define LSM_EXPORT_APPARMOR	0x04
+#define LSM_EXPORT_NONE		0x00000000
+#define LSM_EXPORT_SELINUX	0x00000001
+#define LSM_EXPORT_SMACK	0x00000002
+#define LSM_EXPORT_APPARMOR	0x00000004
+#define LSM_EXPORT_LENGTH	0x80000000	/* Only the length required */
 
 static inline void lsm_export_init(struct lsm_export *l)
 {
@@ -465,7 +466,7 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 			 size_t size);
 int security_netlink_send(struct sock *sk, struct sk_buff *skb);
 int security_ismaclabel(const char *name);
-int security_secid_to_secctx(struct lsm_export *l, char **secdata, u32 *seclen);
+int security_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp);
 int security_secctx_to_secid(struct lsm_context *cp, struct lsm_export *l);
 void security_release_secctx(struct lsm_context *cp);
 
@@ -1241,7 +1242,7 @@ static inline int security_ismaclabel(const char *name)
 }
 
 static inline int security_secid_to_secctx(struct lsm_export *l,
-					   char **secdata, u32 *seclen)
+					   struct lsm_seccontext *cp)
 {
 	return -EOPNOTSUPP;
 }

@@ -6416,6 +6416,9 @@ static int selinux_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp)
 	u32 secid;
 
 	selinux_import_secid(l, &secid);
+	if (l->flags & LSM_EXPORT_LENGTH)
+		return security_sid_to_context(&selinux_state, secid,
+					       NULL, &cp->len);
 	return security_sid_to_context(&selinux_state, secid,
 				       &cp->context, &cp->len);
 }
