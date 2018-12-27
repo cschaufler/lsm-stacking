@@ -2004,13 +2004,9 @@ int security_inode_notifysecctx(struct inode *inode, struct lsm_context *cp)
 }
 EXPORT_SYMBOL(security_inode_notifysecctx);
 
-int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
+int security_inode_setsecctx(struct dentry *dentry, struct lsm_context *cp)
 {
-	struct lsm_context lc;
-
-	lc.context = ctx;
-	lc.len = ctxlen;
-	return call_int_hook(inode_setsecctx, 0, dentry, &lc);
+	return call_int_hook(inode_setsecctx, 0, dentry, cp);
 }
 EXPORT_SYMBOL(security_inode_setsecctx);
 
