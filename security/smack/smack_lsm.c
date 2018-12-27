@@ -4475,9 +4475,10 @@ static int smack_inode_notifysecctx(struct inode *inode, struct lsm_context *cp)
 				       cp->len, 0);
 }
 
-static int smack_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
+static int smack_inode_setsecctx(struct dentry *dentry, struct lsm_context *cp)
 {
-	return __vfs_setxattr_noperm(dentry, XATTR_NAME_SMACK, ctx, ctxlen, 0);
+	return __vfs_setxattr_noperm(dentry, XATTR_NAME_SMACK, cp->context,
+				     cp->len, 0);
 }
 
 static int smack_inode_getsecctx(struct inode *inode, struct lsm_context *cp)
