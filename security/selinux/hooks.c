@@ -6356,9 +6356,11 @@ static int selinux_inode_notifysecctx(struct inode *inode,
 /*
  *	called with inode->i_mutex locked
  */
-static int selinux_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
+static int selinux_inode_setsecctx(struct dentry *dentry,
+				   struct lsm_context *cp)
 {
-	return __vfs_setxattr_noperm(dentry, XATTR_NAME_SELINUX, ctx, ctxlen, 0);
+	return __vfs_setxattr_noperm(dentry, XATTR_NAME_SELINUX, cp->context,
+				     cp->len, 0);
 }
 
 static int selinux_inode_getsecctx(struct inode *inode, struct lsm_context *cp)
