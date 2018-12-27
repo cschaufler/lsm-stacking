@@ -135,20 +135,15 @@ out:
 	return error;
 }
 
-static int kernfs_node_setsecdata(struct kernfs_iattrs *attrs, void **secdata,
-				  u32 *secdata_len)
+static int kernfs_node_setsecdata(struct kernfs_iattrs *attrs,
+				  struct lsm_context *cp)
 {
-	void *old_secdata;
-	size_t old_secdata_len;
+	struct lsm_context old_context;
 
-	old_secdata = attrs->ia_context.context;
-	old_secdata_len = attrs->ia_context.len;
+	old_context = attrs->ia_context;
+	attrs->ia_context = *cp;
+	*cp = old_context;
 
-	attrs->ia_context.context = *secdata;
-	attrs->ia_context.len = *secdata_len;
-
-	*secdata = old_secdata;
-	*secdata_len = old_secdata_len;
 	return 0;
 }
 
@@ -363,7 +358,7 @@ static int kernfs_security_xattr_set(const struct xattr_handler *handler,
 		return error;
 
 	mutex_lock(&kernfs_mutex);
-	error = kernfs_node_setsecdata(attrs, (void **)&lc.context, &lc.len);
+	error = kernfs_node_setsecdata(attrs, &lc);
 	mutex_unlock(&kernfs_mutex);
 
 	if (lc.context)
