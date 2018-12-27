@@ -118,6 +118,7 @@ extern struct lsm_export *lsm_export_skb(struct sk_buff *skb);
 struct lsm_context {
 	char	*context;
 	u32	len;
+	void	(*release)(struct lsm_context *cp); /* frees .context */
 };
 
 static inline void lsm_context_init(struct lsm_context *cp)
