@@ -31,6 +31,8 @@
 #include "flask.h"
 #include "avc.h"
 
+extern struct lsm_blob_sizes selinux_blob_sizes;
+
 struct task_security_struct {
 	u32 osid;		/* SID prior to last execve */
 	u32 sid;		/* current SID */
@@ -45,7 +47,9 @@ struct task_security_struct {
  */
 static inline u32 current_sid(void)
 {
-	const struct task_security_struct *tsec = current_security();
+	const struct task_security_struct *tsec;
+
+	tsec = current_cred()->security + selinux_blob_sizes.lbs_cred;
 
 	return tsec->sid;
 }
@@ -174,7 +178,6 @@ struct bpf_security_struct {
 	u32 sid;  /*SID of bpf obj creater*/
 };
 
-extern struct lsm_blob_sizes selinux_blob_sizes;
 static inline struct task_security_struct *selinux_cred(const struct cred *cred)
 {
 	return cred->security + selinux_blob_sizes.lbs_cred;
