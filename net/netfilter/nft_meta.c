@@ -588,12 +588,7 @@ static int nft_secmark_compute_secid(struct nft_secmark *priv)
 	if (err)
 		return err;
 
-	/* Use the "best" secid */
-	if (le.selinux)
-		tmp_secid = le.selinux;
-	else
-		tmp_secid = le.smack;
-
+	tmp_secid = lsm_export_one_secid(&le);
 	if (!tmp_secid)
 		return -ENOENT;
 
