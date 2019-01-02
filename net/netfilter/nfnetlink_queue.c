@@ -305,14 +305,13 @@ nla_put_failure:
 	return -1;
 }
 
-static u32 nfqnl_get_sk_secctx(struct sk_buff *skb, char **secdata)
+static void nfqnl_get_sk_secctx(struct sk_buff *skb, struct lsm_context *cp)
 {
 #if IS_ENABLED(CONFIG_NETWORK_SECMARK)
 	struct lsm_export le;
-	struct lsm_context lc = { .context = NULL, .len = 0, };
 
 	if (!skb || !sk_fullsock(skb->sk))
-		return 0;
+		return;
 
 	read_lock_bh(&skb->sk->sk_callback_lock);
 
@@ -322,14 +321,10 @@ static u32 nfqnl_get_sk_secctx(struct sk_buff *skb, char **secdata)
 		le.flags = LSM_EXPORT_SELINUX | LSM_EXPORT_SMACK;
 		le.selinux = skb->secmark;
 		le.smack = skb->secmark;
-		security_secid_to_secctx(&le, &lc);
-		*secdata = lc.context;
+		security_secid_to_secctx(&le, cp);
 	}
 
 	read_unlock_bh(&skb->sk->sk_callback_lock);
-	return lc.len;
-#else
-	return 0;
 #endif
 }
 
@@ -406,7 +401,7 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	enum ip_conntrack_info uninitialized_var(ctinfo);
 	struct nfnl_ct_hook *nfnl_ct;
 	bool csum_verify;
-	struct lsm_context lc = { .context = NULL, };
+	struct lsm_context lc;
 
 	size =    nlmsg_total_size(sizeof(struct nfgenmsg))
 		+ nla_total_size(sizeof(struct nfqnl_msg_packet_hdr))
@@ -472,7 +467,7 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	}
 
 	if ((queue->flags & NFQA_CFG_F_SECCTX) && entskb->sk) {
-		lc.len = nfqnl_get_sk_secctx(entskb, &lc.context);
+		nfqnl_get_sk_secctx(entskb, &lc);
 		if (lc.len)
 			size += nla_total_size(lc.len);
 	}
@@ -635,8 +630,7 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	}
 
 	nlh->nlmsg_len = skb->len;
-	if (lc.context)
-		security_release_secctx(&lc);
+	security_release_secctx(&lc);
 	return skb;
 
 nla_put_failure:
