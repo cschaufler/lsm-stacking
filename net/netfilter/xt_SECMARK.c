@@ -67,12 +67,7 @@ static int checkentry_lsm(struct xt_secmark_target_info *info)
 		return err;
 	}
 
-	/* Smack is cheating, using SECMARK_MODE_SEL */
-	if (le.selinux)
-		info->secid = le.selinux;
-	else
-		info->secid = le.smack;
-
+	info->secid = lsm_export_one_secid(&le);
 	if (!info->secid) {
 		pr_info_ratelimited("unable to map security context \'%s\'\n",
 				    info->secctx);
