@@ -456,6 +456,9 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		else if (hooks[i].head ==
 				&security_hook_heads.socket_getpeersec_stream)
 			lsm_base_one.socket_getpeersec_stream = hooks[i].hook;
+		else if (hooks[i].head ==
+				&security_hook_heads.secmark_relabel_packet)
+			lsm_base_one.secmark_relabel_packet = hooks[i].hook;
 		else
 			continue;
 		if (lsm_base_one.lsm == NULL)
@@ -2006,6 +2009,7 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 		union security_list_options secid_to_secctx;
 		union security_list_options secctx_to_secid;
 		union security_list_options socket_getpeersec_stream;
+		union security_list_options secmark_relabel_packet;
 
 		if (size == 0 || size >= 100)
 			return -EINVAL;
@@ -2041,6 +2045,17 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 				break;
 			}
 		}
+		secmark_relabel_packet.secmark_relabel_packet = NULL;
+		hlist_for_each_entry(hp,
+				&security_hook_heads.secmark_relabel_packet,
+				     list) {
+			if (size >= strlen(hp->lsm) &&
+			    !strncmp(value, hp->lsm, size)) {
+				secmark_relabel_packet = hp->hook;
+				found = true;
+				break;
+			}
+		}
 		if (!found)
 			return -EINVAL;
 
@@ -2059,6 +2074,7 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 		loh->secid_to_secctx = secid_to_secctx;
 		loh->secctx_to_secid = secctx_to_secid;
 		loh->socket_getpeersec_stream = socket_getpeersec_stream;
+		loh->secmark_relabel_packet = secmark_relabel_packet;
 
 		return size;
 	}
@@ -2305,7 +2321,7 @@ EXPORT_SYMBOL(security_inet_conn_established);
 
 int security_secmark_relabel_packet(u32 secid)
 {
-	return call_int_hook(secmark_relabel_packet, 0, secid);
+	return call_one_int_hook(secmark_relabel_packet, 0, secid);
 }
 EXPORT_SYMBOL(security_secmark_relabel_packet);
 
