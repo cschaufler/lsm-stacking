@@ -2139,6 +2139,8 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 		loh->secctx_to_secid = secctx_to_secid;
 		loh->socket_getpeersec_stream = socket_getpeersec_stream;
 		loh->secmark_relabel_packet = secmark_relabel_packet;
+		loh->secmark_refcount_inc = secmark_refcount_inc;
+		loh->secmark_refcount_dec = secmark_refcount_dec;
 
 		return size;
 	}
