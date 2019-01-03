@@ -2049,6 +2049,8 @@ struct lsm_one_hooks {
 	union security_list_options secctx_to_secid;
 	union security_list_options socket_getpeersec_stream;
 	union security_list_options secmark_relabel_packet;
+	union security_list_options secmark_refcount_inc;
+	union security_list_options secmark_refcount_dec;
 };
 
 /*

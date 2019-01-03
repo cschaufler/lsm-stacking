@@ -476,6 +476,12 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		else if (hooks[i].head ==
 				&security_hook_heads.secmark_relabel_packet)
 			lsm_base_one.secmark_relabel_packet = hooks[i].hook;
+		else if (hooks[i].head ==
+				&security_hook_heads.secmark_refcount_inc)
+			lsm_base_one.secmark_refcount_inc = hooks[i].hook;
+		else if (hooks[i].head ==
+				&security_hook_heads.secmark_refcount_dec)
+			lsm_base_one.secmark_refcount_dec = hooks[i].hook;
 		else
 			continue;
 		if (lsm_base_one.lsm == NULL)
@@ -754,6 +760,14 @@ int lsm_superblock_alloc(struct super_block *sb)
 		}						\
 	} while (0);						\
 	RC;							\
+})
+
+#define call_one_void_hook(FUNC, ...) ({			\
+	struct lsm_one_hooks *LOH = current_cred()->security;	\
+	if (LOH->FUNC.FUNC)					\
+		LOH->FUNC.FUNC(__VA_ARGS__);			\
+	else if (LOH->lsm == NULL && lsm_base_one.FUNC.FUNC)	\
+		lsm_base_one.FUNC.FUNC(__VA_ARGS__);		\
 })
 
 #define call_one_int_hook(FUNC, IRC, ...) ({			\
@@ -2036,6 +2050,8 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 		union security_list_options secctx_to_secid;
 		union security_list_options socket_getpeersec_stream;
 		union security_list_options secmark_relabel_packet;
+		union security_list_options secmark_refcount_inc;
+		union security_list_options secmark_refcount_dec;
 
 		if (size == 0 || size >= 100)
 			return -EINVAL;
@@ -2078,6 +2094,28 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 			if (size >= strlen(hp->lsm) &&
 			    !strncmp(value, hp->lsm, size)) {
 				secmark_relabel_packet = hp->hook;
+				found = true;
+				break;
+			}
+		}
+		secmark_refcount_inc.secmark_refcount_inc = NULL;
+		hlist_for_each_entry(hp,
+				&security_hook_heads.secmark_refcount_inc,
+				     list) {
+			if (size >= strlen(hp->lsm) &&
+			    !strncmp(value, hp->lsm, size)) {
+				secmark_refcount_inc = hp->hook;
+				found = true;
+				break;
+			}
+		}
+		secmark_refcount_dec.secmark_refcount_dec = NULL;
+		hlist_for_each_entry(hp,
+				&security_hook_heads.secmark_refcount_dec,
+				     list) {
+			if (size >= strlen(hp->lsm) &&
+			    !strncmp(value, hp->lsm, size)) {
+				secmark_refcount_dec = hp->hook;
 				found = true;
 				break;
 			}
@@ -2353,13 +2391,13 @@ EXPORT_SYMBOL(security_secmark_relabel_packet);
 
 void security_secmark_refcount_inc(void)
 {
-	call_void_hook(secmark_refcount_inc);
+	call_one_void_hook(secmark_refcount_inc);
 }
 EXPORT_SYMBOL(security_secmark_refcount_inc);
 
 void security_secmark_refcount_dec(void)
 {
-	call_void_hook(secmark_refcount_dec);
+	call_one_void_hook(secmark_refcount_dec);
 }
 EXPORT_SYMBOL(security_secmark_refcount_dec);
 
