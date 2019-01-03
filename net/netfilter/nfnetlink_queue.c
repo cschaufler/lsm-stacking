@@ -638,8 +638,7 @@ nla_put_failure:
 	kfree_skb(skb);
 	net_err_ratelimited("nf_queue: error creating packet message\n");
 nlmsg_failure:
-	if (lc.context)
-		security_release_secctx(&lc);
+	security_release_secctx(&lc);
 	return NULL;
 }
 
