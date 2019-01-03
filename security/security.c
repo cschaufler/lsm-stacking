@@ -2030,12 +2030,31 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 	return -EINVAL;
 }
 
+/*
+ * The use of the secid_to_secctx memeber of the union is
+ * arbitrary. Any member would work.
+ */
+static bool lsm_add_one(union security_list_options *hook,
+			struct hlist_head *head, char *lsm, size_t size,
+			bool was)
+{
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, head, list) {
+		if (size >= strlen(hp->lsm) && !strncmp(lsm, hp->lsm, size)) {
+			hook->secid_to_secctx = hp->hook.secid_to_secctx;
+			return true;
+		}
+	}
+	hook->secid_to_secctx = NULL;
+	return was;
+}
+
 int security_setprocattr(const char *lsm, const char *name, void *value,
 			 size_t size)
 {
 	struct security_hook_list *hp;
 	struct lsm_one_hooks *loh = current_cred()->security;
-	bool found = false;
 	char *s;
 
 	/*
@@ -2046,80 +2065,31 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 		*s = '\0';
 
 	if (!strcmp(name, "display")) {
-		union security_list_options secid_to_secctx;
-		union security_list_options secctx_to_secid;
-		union security_list_options socket_getpeersec_stream;
-		union security_list_options secmark_relabel_packet;
-		union security_list_options secmark_refcount_inc;
-		union security_list_options secmark_refcount_dec;
+		struct lsm_one_hooks o;
+		bool found = false;
 
 		if (size == 0 || size >= 100)
 			return -EINVAL;
 
-		secid_to_secctx.secid_to_secctx = NULL;
-		hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				secid_to_secctx = hp->hook;
-				found = true;
-				break;
-			}
-		}
-		secctx_to_secid.secctx_to_secid = NULL;
-		hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				secctx_to_secid = hp->hook;
-				found = true;
-				break;
-			}
-		}
-		socket_getpeersec_stream.socket_getpeersec_stream = NULL;
-		hlist_for_each_entry(hp,
-				&security_hook_heads.socket_getpeersec_stream,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				socket_getpeersec_stream = hp->hook;
-				found = true;
-				break;
-			}
-		}
-		secmark_relabel_packet.secmark_relabel_packet = NULL;
-		hlist_for_each_entry(hp,
-				&security_hook_heads.secmark_relabel_packet,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				secmark_relabel_packet = hp->hook;
-				found = true;
-				break;
-			}
-		}
-		secmark_refcount_inc.secmark_refcount_inc = NULL;
-		hlist_for_each_entry(hp,
-				&security_hook_heads.secmark_refcount_inc,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				secmark_refcount_inc = hp->hook;
-				found = true;
-				break;
-			}
-		}
-		secmark_refcount_dec.secmark_refcount_dec = NULL;
-		hlist_for_each_entry(hp,
-				&security_hook_heads.secmark_refcount_dec,
-				     list) {
-			if (size >= strlen(hp->lsm) &&
-			    !strncmp(value, hp->lsm, size)) {
-				secmark_refcount_dec = hp->hook;
-				found = true;
-				break;
-			}
-		}
+		found = lsm_add_one(&o.secid_to_secctx,
+				    &security_hook_heads.secid_to_secctx,
+				    value, size, found);
+		found = lsm_add_one(&o.secctx_to_secid,
+				    &security_hook_heads.secctx_to_secid,
+				    value, size, found);
+		found = lsm_add_one(&o.socket_getpeersec_stream,
+				 &security_hook_heads.socket_getpeersec_stream,
+				    value, size, found);
+		found = lsm_add_one(&o.secmark_relabel_packet,
+				    &security_hook_heads.secmark_relabel_packet,
+				    value, size, found);
+		found = lsm_add_one(&o.secmark_refcount_inc,
+				    &security_hook_heads.secmark_refcount_inc,
+				    value, size, found);
+		found = lsm_add_one(&o.secmark_refcount_dec,
+				    &security_hook_heads.secmark_refcount_dec,
+				    value, size, found);
+
 		if (!found)
 			return -EINVAL;
 
@@ -2134,13 +2104,9 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 
 		if (loh->lsm)
 			kfree(loh->lsm);
+
+		*loh = o;
 		loh->lsm = s;
-		loh->secid_to_secctx = secid_to_secctx;
-		loh->secctx_to_secid = secctx_to_secid;
-		loh->socket_getpeersec_stream = socket_getpeersec_stream;
-		loh->secmark_relabel_packet = secmark_relabel_packet;
-		loh->secmark_refcount_inc = secmark_refcount_inc;
-		loh->secmark_refcount_dec = secmark_refcount_dec;
 
 		return size;
 	}
