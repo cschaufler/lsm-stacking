@@ -1064,9 +1064,10 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
 				 const struct qstr *qstr,
 				 const initxattrs initxattrs, void *fs_data)
 {
-	struct xattr new_xattrs[MAX_LSM_EVM_XATTR + 1];
-	struct xattr *lsm_xattr, *evm_xattr, *xattr;
-	int ret;
+	struct security_hook_list *p;
+	struct xattr *repo;
+	int rc;
+	int i;
 
 	if (unlikely(IS_PRIVATE(inode)))
 		return 0;
@@ -1074,24 +1075,33 @@ int security_inode_init_security(struct inode *inode, struct inode *dir,
 	if (!initxattrs)
 		return call_int_hook(inode_init_security, -EOPNOTSUPP, inode,
 				     dir, qstr, NULL, NULL, NULL);
-	memset(new_xattrs, 0, sizeof(new_xattrs));
-	lsm_xattr = new_xattrs;
-	ret = call_int_hook(inode_init_security, -EOPNOTSUPP, inode, dir, qstr,
-						&lsm_xattr->name,
-						&lsm_xattr->value,
-						&lsm_xattr->value_len);
-	if (ret)
-		goto out;
 
-	evm_xattr = lsm_xattr + 1;
-	ret = evm_inode_init_security(inode, lsm_xattr, evm_xattr);
-	if (ret)
-		goto out;
-	ret = initxattrs(inode, new_xattrs, fs_data);
+	repo = kzalloc((LSM_COUNT * 2) * sizeof(*repo), GFP_NOFS);
+	if (repo == NULL)
+		return -ENOMEM;
+
+	i = 0;
+	rc = -EOPNOTSUPP;
+	hlist_for_each_entry(p, &security_hook_heads.inode_init_security,
+			     list) {
+		rc = p->hook.inode_init_security(inode, dir, qstr,
+						 &repo[i].name, &repo[i].value,
+						 &repo[i].value_len);
+		if (rc)
+			goto out;
+
+		rc = evm_inode_init_security(inode, &repo[i], &repo[i + 1]);
+		if (rc)
+			goto out;
+
+		i += 2;
+	}
+	rc = initxattrs(inode, repo, fs_data);
 out:
-	for (xattr = new_xattrs; xattr->value != NULL; xattr++)
-		kfree(xattr->value);
-	return (ret == -EOPNOTSUPP) ? 0 : ret;
+	for (i-- ; i >= 0; i--)
+		kfree(repo[i].value);
+	kfree(repo);
+	return (rc == -EOPNOTSUPP) ? 0 : rc;
 }
 EXPORT_SYMBOL(security_inode_init_security);
 
