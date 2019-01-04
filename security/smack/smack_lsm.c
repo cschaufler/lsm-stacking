@@ -672,7 +672,6 @@ static int smack_parse_opts_str(char *options,
 				goto out_err;
 			break;
 		default:
-			rc = -EINVAL;
 			pr_warn("Smack:  unknown mount option\n");
 			goto out_err;
 		}

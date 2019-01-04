@@ -1036,7 +1036,8 @@ static int selinux_parse_opts_str(char *options,
 	char *p;
 	char *context = NULL, *defcontext = NULL;
 	char *fscontext = NULL, *rootcontext = NULL;
-	int rc, num_mnt_opts = 0;
+	int rc = 0;
+	int num_mnt_opts = 0;
 
 	opts->num_mnt_opts = 0;
 
@@ -1105,7 +1106,6 @@ static int selinux_parse_opts_str(char *options,
 		case Opt_labelsupport:
 			break;
 		default:
-			rc = -EINVAL;
 			pr_warn("SELinux:  unknown mount option\n");
 			goto out_err;
 
