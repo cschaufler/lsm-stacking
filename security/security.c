@@ -425,6 +425,9 @@ static int lsm_append(char *new, char **result)
 /* Base list of once-only hooks */
 struct lsm_one_hooks lsm_base_one;
 
+/* Count of inode_[gs]etsecctx hooks */
+static int lsm_inode_secctx_count;
+
 /**
  * security_add_hooks - Add a modules hooks to the hook lists.
  * @hooks: the hooks to add
@@ -442,6 +445,15 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		hooks[i].lsm = lsm;
 		hlist_add_tail_rcu(&hooks[i].list, hooks[i].head);
 
+		/*
+		 * Keep count of the internal security context using hooks.
+		 * Assume that there is a 1:1 mapping from inode_getsecctx
+		 * to inode_setsecctx in the security modules.
+		 */
+		if (hooks[i].head == &security_hook_heads.inode_getsecctx) {
+			lsm_inode_secctx_count++;
+			continue;
+		}
 		/*
 		 * Check for the special hooks that are restricted to
 		 * a single module to create the base set. Use the hooks
@@ -2150,15 +2162,109 @@ int security_inode_notifysecctx(struct inode *inode, struct lsm_context *cp)
 }
 EXPORT_SYMBOL(security_inode_notifysecctx);
 
+/*
+ * The inode_[gs]etsecctx functions need to proved a context
+ * for multiple security modules. If there is more than one
+ * LSM supplying hooks the format will be
+ *	lsm1='value',lsm2='value'[,lsmN='value']...
+ */
+static void lsm_release_secctx(struct lsm_context *cp)
+{
+	kfree(cp->context);
+}
+
 int security_inode_setsecctx(struct dentry *dentry, struct lsm_context *cp)
 {
-	return call_int_hook(inode_setsecctx, 0, dentry, cp);
+	struct security_hook_list *hp;
+	struct lsm_context lc;
+	char *full;
+	char *ctx;
+	char *quote;
+	int rc = 0;
+
+	if (lsm_inode_secctx_count <= 1)
+		return call_int_hook(inode_setsecctx, 0, dentry, cp);
+
+	full = kstrndup(cp->context, cp->len, GFP_KERNEL);
+	if (full == NULL)
+		return -ENOMEM;
+
+	ctx = full;
+	hlist_for_each_entry(hp, &security_hook_heads.inode_setsecctx, list) {
+		if (strncmp(ctx, hp->lsm, strlen(hp->lsm))) {
+			WARN_ONCE(1, "security_inode_setsecctx form1 error\n");
+			rc = -EINVAL;
+			break;
+		}
+		ctx += strlen(hp->lsm);
+		if (ctx[0] != '=' || ctx[1] != '\'') {
+			WARN_ONCE(1, "security_inode_setsecctx form2 error\n");
+			rc = -EINVAL;
+			break;
+		}
+		ctx += 2;
+		quote = strnchr(ctx, cp->len, '\'');
+		if (quote == NULL) {
+			WARN_ONCE(1, "security_inode_setsecctx form3 error\n");
+			rc = -EINVAL;
+			break;
+		}
+		quote[0] = '\0';
+		if (quote[1] != ',' && quote[1] != '\0') {
+			WARN_ONCE(1, "security_inode_setsecctx form4 error\n");
+			rc = -EINVAL;
+			break;
+		}
+		lc.context = ctx;
+		lc.len = strlen(ctx);
+
+		ctx = quote + 2;
+
+		rc = hp->hook.inode_setsecctx(dentry, &lc);
+		if (rc)
+			break;
+	}
+
+	kfree(full);
+	return rc;
 }
 EXPORT_SYMBOL(security_inode_setsecctx);
 
 int security_inode_getsecctx(struct inode *inode, struct lsm_context *cp)
 {
-	return call_int_hook(inode_getsecctx, -EOPNOTSUPP, inode, cp);
+	struct security_hook_list *hp;
+	struct lsm_context lc;
+	char *final = NULL;
+	char *tp;
+	int rc;
+
+	if (lsm_inode_secctx_count <= 1)
+		return call_int_hook(inode_getsecctx, -EOPNOTSUPP, inode, cp);
+
+	hlist_for_each_entry(hp, &security_hook_heads.inode_getsecctx, list) {
+		rc = hp->hook.inode_getsecctx(inode, &lc);
+		if (rc) {
+			kfree(final);
+			return rc;
+		}
+		if (final) {
+			tp = kasprintf(GFP_KERNEL, "%s,%s='%s'", final,
+				       hp->lsm, lc.context);
+			kfree(final);
+		} else
+			tp = kasprintf(GFP_KERNEL, "%s='%s'", hp->lsm,
+				       lc.context);
+		security_release_secctx(&lc);
+		if (tp == NULL) {
+			kfree(final);
+			return -ENOMEM;
+		}
+		final = tp;
+	}
+	cp->context = final;
+	cp->len = strlen(final);
+	cp->release = lsm_release_secctx;
+	return 0;
 }
 EXPORT_SYMBOL(security_inode_getsecctx);
 
