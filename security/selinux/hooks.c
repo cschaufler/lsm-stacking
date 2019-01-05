@@ -3097,13 +3097,10 @@ static int selinux_inode_setxattr(struct dentry *dentry, const char *name,
 	int rc = 0;
 
 	if (strcmp(name, XATTR_NAME_SELINUX)) {
-		rc = cap_inode_setxattr(dentry, name, value, size, flags);
-		if (rc)
-			return rc;
-
 		/* Not an attribute we recognize, so just check the
 		   ordinary setattr permission. */
-		return dentry_has_perm(current_cred(), dentry, FILE__SETATTR);
+		rc = dentry_has_perm(current_cred(), dentry, FILE__SETATTR);
+		return rc ? rc : -ENOSYS;
 	}
 
 	sbsec = selinux_superblock(inode->i_sb);
