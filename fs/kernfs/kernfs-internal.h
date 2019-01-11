@@ -15,13 +15,13 @@
 #include <linux/fs.h>
 #include <linux/mutex.h>
 #include <linux/xattr.h>
+#include <linux/security.h>
 
 #include <linux/kernfs.h>
 
 struct kernfs_iattrs {
 	struct iattr		ia_iattr;
-	void			*ia_secdata;
-	u32			ia_secdata_len;
+	struct lsm_context	ia_context;
 
 	struct simple_xattrs	xattrs;
 };
