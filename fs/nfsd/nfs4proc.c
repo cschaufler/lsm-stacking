@@ -54,12 +54,16 @@
 static inline void
 nfsd4_security_inode_setsecctx(struct svc_fh *resfh, struct xdr_netobj *label, u32 *bmval)
 {
+	struct lsm_context lc;
 	struct inode *inode = d_inode(resfh->fh_dentry);
 	int status;
 
 	inode_lock(inode);
-	status = security_inode_setsecctx(resfh->fh_dentry,
-		label->data, label->len);
+
+	lsm_context_init(&lc);
+	lc.context = label->data;
+	lc.len = label->len;
+	status = security_inode_setsecctx(resfh->fh_dentry, &lc);
 	inode_unlock(inode);
 
 	if (status)
