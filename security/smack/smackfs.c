@@ -2953,8 +2953,12 @@ static struct vfsmount *smackfs_mount;
 static int __init smk_preset_netlabel(struct smack_known *skp)
 {
 	skp->smk_netlabel.domain = skp->smk_known;
-	skp->smk_netlabel.flags =
-		NETLBL_SECATTR_DOMAIN | NETLBL_SECATTR_MLS_LVL;
+	lsm_export_init(&skp->smk_netlabel.attr.le);
+	skp->smk_netlabel.attr.le.flags = LSM_EXPORT_SMACK;
+	skp->smk_netlabel.attr.le.smack = skp->smk_secid;
+	skp->smk_netlabel.flags = NETLBL_SECATTR_DOMAIN |
+				  NETLBL_SECATTR_MLS_LVL |
+				  NETLBL_SECATTR_SECID;
 	return smk_netlbl_mls(smack_cipso_direct, skp->smk_known,
 				&skp->smk_netlabel, strlen(skp->smk_known));
 }
