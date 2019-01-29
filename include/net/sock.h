@@ -51,7 +51,7 @@
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>	/* struct sk_buff */
 #include <linux/mm.h>
-#include <linux/security.h>
+//CBS #include <linux/security.h>
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/page_counter.h>
@@ -1800,17 +1800,7 @@ static inline void sock_orphan(struct sock *sk)
 	write_unlock_bh(&sk->sk_callback_lock);
 }
 
-static inline void sock_graft(struct sock *sk, struct socket *parent)
-{
-	WARN_ON(parent->sk);
-	write_lock_bh(&sk->sk_callback_lock);
-	rcu_assign_pointer(sk->sk_wq, parent->wq);
-	parent->sk = sk;
-	sk_set_socket(sk, parent);
-	sk->sk_uid = SOCK_INODE(parent)->i_uid;
-	security_sock_graft(sk, parent);
-	write_unlock_bh(&sk->sk_callback_lock);
-}
+void sock_graft(struct sock *sk, struct socket *parent);
 
 kuid_t sock_i_uid(struct sock *sk);
 unsigned long sock_i_ino(struct sock *sk);
