@@ -35,7 +35,7 @@
 #include <linux/route.h>
 #include <linux/ip.h>
 #include <linux/cache.h>
-#include <linux/security.h>
+//CBS #include <linux/security.h>
 
 /* IPv4 datagram length is stored into 16bit field (tot_len) */
 #define IP_MAX_MTU	0xFFFFU
@@ -146,20 +146,11 @@ static inline struct rtable *ip_route_output(struct net *net, __be32 daddr,
 	return ip_route_output_key(net, &fl4);
 }
 
-static inline struct rtable *ip_route_output_ports(struct net *net, struct flowi4 *fl4,
+struct rtable *ip_route_output_ports(struct net *net, struct flowi4 *fl4,
 						   struct sock *sk,
 						   __be32 daddr, __be32 saddr,
 						   __be16 dport, __be16 sport,
-						   __u8 proto, __u8 tos, int oif)
-{
-	flowi4_init_output(fl4, oif, sk ? sk->sk_mark : 0, tos,
-			   RT_SCOPE_UNIVERSE, proto,
-			   sk ? inet_sk_flowi_flags(sk) : 0,
-			   daddr, saddr, dport, sport, sock_net_uid(net, sk));
-	if (sk)
-		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
-	return ip_route_output_flow(net, fl4, sk);
-}
+						   __u8 proto, __u8 tos, int oif);
 
 static inline struct rtable *ip_route_output_gre(struct net *net, struct flowi4 *fl4,
 						 __be32 daddr, __be32 saddr,
@@ -286,47 +277,15 @@ static inline void ip_route_connect_init(struct flowi4 *fl4, __be32 dst, __be32 
 			   sk->sk_uid);
 }
 
-static inline struct rtable *ip_route_connect(struct flowi4 *fl4,
+struct rtable *ip_route_connect(struct flowi4 *fl4,
 					      __be32 dst, __be32 src, u32 tos,
 					      int oif, u8 protocol,
 					      __be16 sport, __be16 dport,
-					      struct sock *sk)
-{
-	struct net *net = sock_net(sk);
-	struct rtable *rt;
-
-	ip_route_connect_init(fl4, dst, src, tos, oif, protocol,
-			      sport, dport, sk);
-
-	if (!dst || !src) {
-		rt = __ip_route_output_key(net, fl4);
-		if (IS_ERR(rt))
-			return rt;
-		ip_rt_put(rt);
-		flowi4_update_output(fl4, oif, tos, fl4->daddr, fl4->saddr);
-	}
-	security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
-	return ip_route_output_flow(net, fl4, sk);
-}
-
-static inline struct rtable *ip_route_newports(struct flowi4 *fl4, struct rtable *rt,
+					      struct sock *sk);
+struct rtable *ip_route_newports(struct flowi4 *fl4, struct rtable *rt,
 					       __be16 orig_sport, __be16 orig_dport,
 					       __be16 sport, __be16 dport,
-					       struct sock *sk)
-{
-	if (sport != orig_sport || dport != orig_dport) {
-		fl4->fl4_dport = dport;
-		fl4->fl4_sport = sport;
-		ip_rt_put(rt);
-		flowi4_update_output(fl4, sk->sk_bound_dev_if,
-				     RT_CONN_FLAGS(sk), fl4->daddr,
-				     fl4->saddr);
-		security_sk_classify_flow(sk, flowi4_to_flowi(fl4));
-		return ip_route_output_flow(sock_net(sk), fl4, sk);
-	}
-	return rt;
-}
-
+					       struct sock *sk);
 static inline int inet_iif(const struct sk_buff *skb)
 {
 	struct rtable *rt = skb_rtable(skb);
