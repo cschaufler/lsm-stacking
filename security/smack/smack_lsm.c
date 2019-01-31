@@ -574,26 +574,33 @@ struct smack_mnt_opts {
 	const char *fsdefault, *fsfloor, *fshat, *fsroot, *fstransmute;
 };
 
+static void *smack_mnt_opts(void *opts)
+{
+	if (opts)
+		return opts + smack_blob_sizes.lbs_mnt_opts;
+	return NULL;
+}
+
 static void smack_free_mnt_opts(void *mnt_opts)
 {
-	struct smack_mnt_opts *opts = mnt_opts;
+	struct smack_mnt_opts *opts = smack_mnt_opts(mnt_opts);
 	kfree(opts->fsdefault);
 	kfree(opts->fsfloor);
 	kfree(opts->fshat);
 	kfree(opts->fsroot);
 	kfree(opts->fstransmute);
-	kfree(opts);
 }
 
 static int smack_add_opt(int token, const char *s, void **mnt_opts)
 {
-	struct smack_mnt_opts *opts = *mnt_opts;
+	struct smack_mnt_opts *opts = smack_mnt_opts(*mnt_opts);
 
 	if (!opts) {
-		opts = kzalloc(sizeof(struct smack_mnt_opts), GFP_KERNEL);
+		opts = lsm_mnt_opts_alloc();
 		if (!opts)
 			return -ENOMEM;
 		*mnt_opts = opts;
+		opts = smack_mnt_opts(opts);
 	}
 	if (!s)
 		return -ENOMEM;
@@ -741,7 +748,6 @@ static int smack_sb_eat_lsm_opts(char *options, void **mnt_opts)
 				kfree(arg);
 				if (*mnt_opts)
 					smack_free_mnt_opts(*mnt_opts);
-				*mnt_opts = NULL;
 				return rc;
 			}
 		} else {
@@ -784,7 +790,7 @@ static int smack_set_mnt_opts(struct super_block *sb,
 	struct superblock_smack *sp = smack_superblock(sb);
 	struct inode_smack *isp;
 	struct smack_known *skp;
-	struct smack_mnt_opts *opts = mnt_opts;
+	struct smack_mnt_opts *opts = smack_mnt_opts(mnt_opts);
 	bool transmute = false;
 
 	if (sp->smk_flags & SMK_SB_INITIALIZED)
@@ -4586,6 +4592,7 @@ struct lsm_blob_sizes smack_blob_sizes __lsm_ro_after_init = {
 #ifdef CONFIG_KEYS
 	.lbs_key = sizeof(struct smack_known *),
 #endif /* CONFIG_KEYS */
+	.lbs_mnt_opts = sizeof(struct smack_mnt_opts),
 	.lbs_msg_msg = sizeof(struct smack_known *),
 	.lbs_sock = sizeof(struct socket_smack),
 	.lbs_superblock = sizeof(struct superblock_smack),
