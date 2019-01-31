@@ -2066,6 +2066,7 @@ struct lsm_blob_sizes {
 	int	lbs_key;
 	int	lbs_msg_msg;
 	int	lbs_task;
+	int	lbs_mnt_opts;
 };
 
 /*
@@ -2138,5 +2139,9 @@ static inline void security_delete_hooks(struct security_hook_list *hooks,
 #endif /* CONFIG_SECURITY_WRITABLE_HOOKS */
 
 extern int lsm_inode_alloc(struct inode *inode);
+
+#ifdef CONFIG_SECURITY
+void *lsm_mnt_opts_alloc(void);
+#endif
 
 #endif /* ! __LINUX_LSM_HOOKS_H */

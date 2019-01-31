@@ -383,14 +383,20 @@ struct selinux_mnt_opts {
 	const char *fscontext, *context, *rootcontext, *defcontext;
 };
 
+static void *selinux_mnt_opts(void *mnt_opts)
+{
+	if (mnt_opts)
+		return mnt_opts + selinux_blob_sizes.lbs_mnt_opts;
+	return NULL;
+}
+
 static void selinux_free_mnt_opts(void *mnt_opts)
 {
-	struct selinux_mnt_opts *opts = mnt_opts;
+	struct selinux_mnt_opts *opts = selinux_mnt_opts(mnt_opts);
 	kfree(opts->fscontext);
 	kfree(opts->context);
 	kfree(opts->rootcontext);
 	kfree(opts->defcontext);
-	kfree(opts);
 }
 
 static inline int inode_doinit(struct inode *inode)
@@ -638,7 +644,7 @@ static int selinux_set_mnt_opts(struct super_block *sb,
 	const struct cred *cred = current_cred();
 	struct superblock_security_struct *sbsec = selinux_superblock(sb);
 	struct dentry *root = sbsec->sb->s_root;
-	struct selinux_mnt_opts *opts = mnt_opts;
+	struct selinux_mnt_opts *opts = selinux_mnt_opts(mnt_opts);
 	struct inode_security_struct *root_isec;
 	u32 fscontext_sid = 0, context_sid = 0, rootcontext_sid = 0;
 	u32 defcontext_sid = 0;
@@ -653,7 +659,8 @@ static int selinux_set_mnt_opts(struct super_block *sb,
 			   server is ready to handle calls. */
 			goto out;
 		}
-		rc = -EINVAL;
+		/* Don't set any SELinux options. Allow any other LSM
+		   that's on the stack to do so. */
 		pr_warn("SELinux: Unable to set superblock options "
 			"before the security server is initialized\n");
 		goto out;
@@ -980,16 +987,17 @@ out:
 
 static int selinux_add_opt(int token, const char *s, void **mnt_opts)
 {
-	struct selinux_mnt_opts *opts = *mnt_opts;
+	struct selinux_mnt_opts *opts = selinux_mnt_opts(*mnt_opts);
 
 	if (token == Opt_seclabel)	/* eaten and completely ignored */
 		return 0;
 
 	if (!opts) {
-		opts = kzalloc(sizeof(struct selinux_mnt_opts), GFP_KERNEL);
+		opts = lsm_mnt_opts_alloc();
 		if (!opts)
 			return -ENOMEM;
 		*mnt_opts = opts;
+		opts = selinux_mnt_opts(opts);
 	}
 	if (!s)
 		return -ENOMEM;
@@ -1042,10 +1050,8 @@ static int selinux_add_mnt_opt(const char *option, const char *val, int len,
 	rc = selinux_add_opt(token, val, mnt_opts);
 	if (unlikely(rc)) {
 		kfree(val);
-		if (*mnt_opts) {
+		if (*mnt_opts)
 			selinux_free_mnt_opts(*mnt_opts);
-			*mnt_opts = NULL;
-		}
 	}
 	return rc;
 }
@@ -2611,10 +2617,8 @@ static int selinux_sb_eat_lsm_opts(char *options, void **mnt_opts)
 			rc = selinux_add_opt(token, arg, mnt_opts);
 			if (unlikely(rc)) {
 				kfree(arg);
-				if (*mnt_opts) {
+				if (*mnt_opts)
 					selinux_free_mnt_opts(*mnt_opts);
-					*mnt_opts = NULL;
-				}
 				return rc;
 			}
 		} else {
@@ -2637,7 +2641,7 @@ static int selinux_sb_eat_lsm_opts(char *options, void **mnt_opts)
 
 static int selinux_sb_remount(struct super_block *sb, void *mnt_opts)
 {
-	struct selinux_mnt_opts *opts = mnt_opts;
+	struct selinux_mnt_opts *opts = selinux_mnt_opts(mnt_opts);
 	struct superblock_security_struct *sbsec = selinux_superblock(sb);
 	u32 sid;
 	int rc;
@@ -6641,6 +6645,7 @@ struct lsm_blob_sizes selinux_blob_sizes __lsm_ro_after_init = {
 #ifdef CONFIG_KEYS
 	.lbs_key = sizeof(struct key_security_struct),
 #endif /* CONFIG_KEYS */
+	.lbs_mnt_opts = sizeof(struct selinux_mnt_opts),
 	.lbs_msg_msg = sizeof(struct msg_security_struct),
 	.lbs_sock = sizeof(struct sk_security_struct),
 	.lbs_superblock = sizeof(struct superblock_security_struct),
