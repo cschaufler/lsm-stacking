@@ -3988,9 +3988,9 @@ static int smack_socket_getpeersec_stream(struct socket *sock,
  *
  * Sets the netlabel socket state on sk from parent
  */
-static int smack_socket_getpeersec_dgram(struct socket *sock,
-					 struct sk_buff *skb,
-					 struct lsm_export *l)
+static void smack_socket_getpeersec_dgram(struct socket *sock,
+					  struct sk_buff *skb,
+					  struct lsm_export *l)
 
 {
 	struct netlbl_lsm_secattr secattr;
@@ -3998,7 +3998,6 @@ static int smack_socket_getpeersec_dgram(struct socket *sock,
 	struct smack_known *skp;
 	int family = PF_UNSPEC;
 	u32 s = 0;	/* 0 is the invalid secid */
-	int rc;
 
 	if (skb != NULL) {
 		if (skb->protocol == htons(ETH_P_IP))
@@ -4028,8 +4027,7 @@ static int smack_socket_getpeersec_dgram(struct socket *sock,
 		if (sock != NULL && sock->sk != NULL)
 			ssp = smack_sock(sock->sk);
 		netlbl_secattr_init(&secattr);
-		rc = netlbl_skbuff_getattr(skb, family, &secattr);
-		if (rc == 0) {
+		if (netlbl_skbuff_getattr(skb, family, &secattr) == 0) {
 			skp = smack_from_secattr(&secattr, ssp);
 			s = skp->smk_secid;
 		}
@@ -4044,9 +4042,7 @@ static int smack_socket_getpeersec_dgram(struct socket *sock,
 		break;
 	}
 	smack_export_secid(l, s);
-	if (s == 0)
-		return -EINVAL;
-	return 0;
+	return;
 }
 
 /**
@@ -4458,6 +4454,9 @@ static int smack_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp)
 	u32 secid;
 
 	smack_import_secid(l, &secid);
+	if (secid == 0)
+		return -EINVAL;
+
 	skp = smack_from_secid(secid);
 
 	cp->context = (l->flags & LSM_EXPORT_LENGTH) ? NULL : skp->smk_known;

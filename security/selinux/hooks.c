@@ -4939,9 +4939,9 @@ out_len:
 	return err;
 }
 
-static int selinux_socket_getpeersec_dgram(struct socket *sock,
-					   struct sk_buff *skb,
-					   struct lsm_export *l)
+static void selinux_socket_getpeersec_dgram(struct socket *sock,
+					    struct sk_buff *skb,
+					    struct lsm_export *l)
 {
 	u32 peer_secid = SECSID_NULL;
 	u16 family;
@@ -4964,9 +4964,7 @@ static int selinux_socket_getpeersec_dgram(struct socket *sock,
 
 out:
 	selinux_export_secid(l, peer_secid);
-	if (peer_secid == SECSID_NULL)
-		return -EINVAL;
-	return 0;
+	return;
 }
 
 static int selinux_sk_alloc_security(struct sock *sk, int family, gfp_t priority)
@@ -6313,6 +6311,9 @@ static int selinux_secid_to_secctx(struct lsm_export *l, struct lsm_context *cp)
 	u32 secid;
 
 	selinux_import_secid(l, &secid);
+	if (secid == SECSID_NULL)
+		return -EINVAL;
+
 	cp->release = selinux_release_secctx;
 	if (l->flags & LSM_EXPORT_LENGTH)
 		return security_sid_to_context(&selinux_state, secid,

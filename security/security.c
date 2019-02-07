@@ -2428,12 +2428,11 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				optval, optlen, len);
 }
 
-int security_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb,
-				     struct lsm_export *l)
+void security_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb,
+				      struct lsm_export *l)
 {
 	lsm_export_init(l);
-	return call_int_hook(socket_getpeersec_dgram, -ENOPROTOOPT, sock, skb,
-			     l);
+	call_void_hook(socket_getpeersec_dgram, sock, skb, l);
 }
 EXPORT_SYMBOL(security_socket_getpeersec_dgram);
 
