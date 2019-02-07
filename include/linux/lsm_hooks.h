@@ -883,7 +883,6 @@
  *	@sock is the socket
  *	@skb is the skbuff for the packet being queried
  *	@l is a pointer to a buffer in which to copy the security data
- *	Return 0 on success, error on failure.
  * @sk_alloc_security:
  *	Allocate and attach a security structure to the sk->sk_security field,
  *	which is used to copy security attributes between local stream sockets.
@@ -1699,7 +1698,7 @@ union security_list_options {
 	int (*socket_getpeersec_stream)(struct socket *sock,
 					char __user *optval,
 					int __user *optlen, unsigned len);
-	int (*socket_getpeersec_dgram)(struct socket *sock,
+	void (*socket_getpeersec_dgram)(struct socket *sock,
 					struct sk_buff *skb,
 					struct lsm_export *l);
 	int (*sk_alloc_security)(struct sock *sk, int family, gfp_t priority);
