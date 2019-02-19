@@ -494,8 +494,8 @@ int smk_netlbl_mls(int level, char *catset, struct netlbl_lsm_secattr *sap,
 	int cat;
 	int rc;
 	int byte;
+	bool has = false;
 
-	sap->flags |= NETLBL_SECATTR_MLS_CAT;
 	sap->attr.mls.lvl = level;
 	sap->attr.mls.cat = NULL;
 
@@ -503,6 +503,7 @@ int smk_netlbl_mls(int level, char *catset, struct netlbl_lsm_secattr *sap,
 		for (m = 0x80; m != 0; m >>= 1, cat++) {
 			if ((m & *cp) == 0)
 				continue;
+			has = true;
 			rc = netlbl_catmap_setbit(&sap->attr.mls.cat,
 						  cat, GFP_KERNEL);
 			if (rc < 0) {
@@ -510,6 +511,9 @@ int smk_netlbl_mls(int level, char *catset, struct netlbl_lsm_secattr *sap,
 				return rc;
 			}
 		}
+
+	if (has)
+		sap->flags |= NETLBL_SECATTR_MLS_CAT;
 
 	return 0;
 }
