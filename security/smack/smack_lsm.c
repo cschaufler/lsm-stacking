@@ -2466,10 +2466,7 @@ static int smack_netlabel_send(struct sock *sk, struct sockaddr_in *sap)
 		rc = smk_bu_note("IPv4 host check", skp, hkp, MAY_WRITE, rc);
 	}
 	rcu_read_unlock();
-	if (rc != 0)
-		return rc;
-
-	return smack_netlabel(sk);
+	return rc;
 }
 
 #if IS_ENABLED(CONFIG_IPV6)
