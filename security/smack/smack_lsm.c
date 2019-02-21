@@ -4143,7 +4143,7 @@ access_check:
 	if (hskp == NULL)
 		rc = netlbl_req_setattr(req, &skp->smk_netlabel);
 	else
-		netlbl_req_delattr(req);
+		rc = netlbl_req_setattr(req, &smack_net_ambient->smk_netlabel);
 
 	return rc;
 }
