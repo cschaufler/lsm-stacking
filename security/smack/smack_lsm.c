@@ -2403,37 +2403,27 @@ static struct smack_known *smack_ipv6host_label(struct sockaddr_in6 *sip)
 /**
  * smack_netlabel - Set the secattr on a socket
  * @sk: the socket
- * @labeled: socket label scheme
  *
  * Convert the outbound smack value (smk_out) to a
  * secattr and attach it to the socket.
  *
  * Returns 0 on success or an error code
  */
-static int smack_netlabel(struct sock *sk, int labeled)
+static int smack_netlabel(struct sock *sk)
 {
 	struct smack_known *skp;
 	struct socket_smack *ssp = smack_sock(sk);
 	int rc = 0;
 
 	/*
-	 * Usually the netlabel code will handle changing the
+	 * The netlabel code will handle changing the
 	 * packet labeling based on the label.
-	 * The case of a single label host is different, because
-	 * a single label host should never get a labeled packet
-	 * even though the label is usually associated with a packet
-	 * label.
 	 */
 	local_bh_disable();
 	bh_lock_sock_nested(sk);
 
-	if (ssp->smk_out == smack_net_ambient ||
-	    labeled == SMACK_UNLABELED_SOCKET)
-		netlbl_sock_delattr(sk);
-	else {
-		skp = ssp->smk_out;
-		rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
-	}
+	skp = ssp->smk_out;
+	rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
 
 	bh_unlock_sock(sk);
 	local_bh_enable();
@@ -2455,8 +2445,7 @@ static int smack_netlabel(struct sock *sk, int labeled)
 static int smack_netlabel_send(struct sock *sk, struct sockaddr_in *sap)
 {
 	struct smack_known *skp;
-	int rc;
-	int sk_lbl;
+	int rc = 0;
 	struct smack_known *hkp;
 	struct socket_smack *ssp = smack_sock(sk);
 	struct smk_audit_info ad;
@@ -2472,19 +2461,15 @@ static int smack_netlabel_send(struct sock *sk, struct sockaddr_in *sap)
 		ad.a.u.net->dport = sap->sin_port;
 		ad.a.u.net->v4info.daddr = sap->sin_addr.s_addr;
 #endif
-		sk_lbl = SMACK_UNLABELED_SOCKET;
 		skp = ssp->smk_out;
 		rc = smk_access(skp, hkp, MAY_WRITE, &ad);
 		rc = smk_bu_note("IPv4 host check", skp, hkp, MAY_WRITE, rc);
-	} else {
-		sk_lbl = SMACK_CIPSO_SOCKET;
-		rc = 0;
 	}
 	rcu_read_unlock();
 	if (rc != 0)
 		return rc;
 
-	return smack_netlabel(sk, sk_lbl);
+	return smack_netlabel(sk);
 }
 
 #if IS_ENABLED(CONFIG_IPV6)
@@ -2722,7 +2707,7 @@ static int smack_inode_setsecurity(struct inode *inode, const char *name,
 	else if (strcmp(name, XATTR_SMACK_IPOUT) == 0) {
 		ssp->smk_out = skp;
 		if (sock->sk->sk_family == PF_INET) {
-			rc = smack_netlabel(sock->sk, SMACK_CIPSO_SOCKET);
+			rc = smack_netlabel(sock->sk);
 			if (rc != 0)
 				printk(KERN_WARNING
 					"Smack: \"%s\" netlbl error %d.\n",
@@ -2773,7 +2758,7 @@ static int smack_socket_post_create(struct socket *sock, int family,
 	/*
 	 * Set the outbound netlbl.
 	 */
-	return smack_netlabel(sock->sk, SMACK_CIPSO_SOCKET);
+	return smack_netlabel(sock->sk);
 }
 
 /**
