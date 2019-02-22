@@ -2413,7 +2413,7 @@ static int smack_netlabel(struct sock *sk)
 {
 	struct smack_known *skp;
 	struct socket_smack *ssp = smack_sock(sk);
-	int rc = 0;
+	int rc;
 
 	/*
 	 * The netlabel code will handle changing the
@@ -2424,8 +2424,10 @@ static int smack_netlabel(struct sock *sk)
 
 	skp = ssp->smk_out;
 	rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
-	if (rc > 0)
+	if (rc >= 0) {
+		ssp->smk_set = rc;
 		rc = 0;
+	}
 
 	bh_unlock_sock(sk);
 	local_bh_enable();
@@ -4146,8 +4148,10 @@ access_check:
 		rc = netlbl_req_setattr(req, &skp->smk_netlabel);
 	else
 		rc = netlbl_req_setattr(req, &smack_net_ambient->smk_netlabel);
-	if (rc >= 0)
+	if (rc >= 0) {
+		ssp->smk_set = rc;
 		return 0;
+	}
 
 	return rc;
 }
