@@ -145,6 +145,7 @@ struct sk_security_struct {
 		NLBL_REQSKB,
 		NLBL_CONNLABELED,
 	} nlbl_state;
+	int nlbl_set;			/* Raw NLTYPE	*/
 	struct netlbl_lsm_secattr *nlbl_secattr; /* NetLabel sec attributes */
 #endif
 	u32 sid;			/* SID of this object */
