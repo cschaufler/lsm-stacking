@@ -266,6 +266,8 @@ int selinux_netlbl_skbuff_setsid(struct sk_buff *skb,
 	}
 
 	rc = netlbl_skbuff_setattr(skb, family, secattr);
+	if (rc > 0)
+		rc = 0;
 
 skbuff_setsid_return:
 	if (secattr == &secattr_storage)
