@@ -358,6 +358,8 @@ int selinux_netlbl_inet_conn_request(struct request_sock *req, u16 family)
 	if (rc != 0)
 		goto inet_conn_request_return;
 	rc = netlbl_req_setattr(req, &secattr);
+	if (rc > 0)
+		rc = 0;
 inet_conn_request_return:
 	netlbl_secattr_destroy(&secattr);
 	return rc;
