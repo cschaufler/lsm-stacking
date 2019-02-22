@@ -321,8 +321,10 @@ int selinux_netlbl_sctp_assoc_request(struct sctp_endpoint *ep,
 	}
 
 	rc = netlbl_conn_setattr(ep->base.sk, addr, &secattr);
-	if (rc == 0)
+	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_LABELED;
+		rc = 0;
+	}
 
 assoc_request_return:
 	netlbl_secattr_destroy(&secattr);
@@ -576,8 +578,10 @@ static int selinux_netlbl_socket_connect_helper(struct sock *sk,
 		return rc;
 	}
 	rc = netlbl_conn_setattr(sk, addr, secattr);
-	if (rc == 0)
+	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_CONNLABELED;
+		rc = 0;
+	}
 
 	return rc;
 }
