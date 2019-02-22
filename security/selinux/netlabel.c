@@ -418,15 +418,12 @@ int selinux_netlbl_socket_post_create(struct sock *sk, u16 family)
 	if (secattr == NULL)
 		return -ENOMEM;
 	rc = netlbl_sock_setattr(sk, family, secattr);
-	switch (rc) {
-	case 0:
-		sksec->nlbl_state = NLBL_LABELED;
-		break;
-	case -EDESTADDRREQ:
+	if (rc == NETLBL_NLTYPE_ADDRSELECT)
 		sksec->nlbl_state = NLBL_REQSKB;
+	else if (rc >= 0)
+		sksec->nlbl_state = NLBL_LABELED;
+	if (rc > 0)
 		rc = 0;
-		break;
-	}
 
 	return rc;
 }
