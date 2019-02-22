@@ -26,8 +26,17 @@ static bool smack_checked_secmark;
 
 void smack_secmark_refcount_inc(void)
 {
-        smack_use_secmark = true;
+	smack_use_secmark = true;
 	pr_info("Smack: Using network secmarks.\n");
+}
+
+static void smack_own_secmark(void)
+{
+	if (!smack_checked_secmark) {
+		security_secmark_refcount_inc();
+		security_secmark_refcount_dec();
+		smack_checked_secmark = true;
+	}
 }
 
 #if IS_ENABLED(CONFIG_IPV6)
@@ -40,11 +49,7 @@ static unsigned int smack_ipv6_output(void *priv,
 	struct socket_smack *ssp;
 	struct smack_known *skp;
 
-	if (!smack_checked_secmark) {
-		security_secmark_refcount_inc();
-		security_secmark_refcount_dec();
-		smack_checked_secmark = true;
-	}
+	smack_own_secmark();
 
 	if (smack_use_secmark && sk && smack_sock(sk)) {
 		ssp = smack_sock(sk);
@@ -63,17 +68,26 @@ static unsigned int smack_ipv4_output(void *priv,
 	struct sock *sk = skb_to_full_sk(skb);
 	struct socket_smack *ssp;
 	struct smack_known *skp;
+	int rc = 0;
 
-	if (!smack_checked_secmark) {
-		security_secmark_refcount_inc();
-		security_secmark_refcount_dec();
-		smack_checked_secmark = true;
-	}
+	smack_own_secmark();
 
-	if (smack_use_secmark && sk && smack_sock(sk)) {
-		ssp = smack_sock(sk);
-		skp = ssp->smk_out;
+	if (sk == NULL)
+		return NF_ACCEPT;
+
+	ssp = smack_sock(sk);
+	if (ssp == NULL)
+		return NF_ACCEPT;
+
+	skp = ssp->smk_out;
+	if (smack_use_secmark)
 		skb->secmark = skp->smk_secid;
+
+	if (ssp->smk_set == NETLBL_NLTYPE_ADDRSELECT) {
+		rc = netlbl_skbuff_setattr(skb, PF_INET, &skp->smk_netlabel);
+		if (rc < 0)
+			return NF_DROP;
+		ssp->smk_set = rc;
 	}
 
 	return NF_ACCEPT;
