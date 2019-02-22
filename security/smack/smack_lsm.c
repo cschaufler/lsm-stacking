@@ -2424,6 +2424,8 @@ static int smack_netlabel(struct sock *sk)
 
 	skp = ssp->smk_out;
 	rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
+	if (rc > 0)
+		rc = 0;
 
 	bh_unlock_sock(sk);
 	local_bh_enable();
