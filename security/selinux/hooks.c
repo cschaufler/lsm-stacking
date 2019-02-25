@@ -6881,6 +6881,9 @@ static struct security_hook_list selinux_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(bpf_map_free_security, selinux_bpf_map_free),
 	LSM_HOOK_INIT(bpf_prog_free_security, selinux_bpf_prog_free),
 #endif
+#ifdef CONFIG_NETLABEL
+	LSM_HOOK_INIT(socket_netlbl_secattr, selinux_socket_netlbl_secattr),
+#endif
 };
 
 static __init int selinux_init(void)

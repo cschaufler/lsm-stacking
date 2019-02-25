@@ -29,6 +29,9 @@
 #include <linux/init.h>
 #include <linux/rculist.h>
 
+#ifdef CONFIG_NETLABEL
+struct netlbl_lsm_secattr;
+#endif
 /**
  * union security_list_options - Linux Security Module hook function list
  *
@@ -1431,6 +1434,10 @@
  * @bpf_prog_free_security:
  *	Clean up the security information stored inside bpf prog.
  *
+ * Security hooks for network labeling (Netlabel) operations.
+ *
+ * @socket_netlbl_secattr:
+ *	Report the netlabel attributes this module wants for this socket.
  */
 union security_list_options {
 	int (*binder_set_context_mgr)(struct task_struct *mgr);
@@ -1790,6 +1797,11 @@ union security_list_options {
 	int (*bpf_prog_alloc_security)(struct bpf_prog_aux *aux);
 	void (*bpf_prog_free_security)(struct bpf_prog_aux *aux);
 #endif /* CONFIG_BPF_SYSCALL */
+#ifdef CONFIG_NETLABEL
+	void (*socket_netlbl_secattr)(struct sock *sk,
+				      struct netlbl_lsm_secattr **secattr,
+				      int *set);
+#endif
 };
 
 struct security_hook_heads {
@@ -2026,6 +2038,9 @@ struct security_hook_heads {
 	struct hlist_head bpf_prog_alloc_security;
 	struct hlist_head bpf_prog_free_security;
 #endif /* CONFIG_BPF_SYSCALL */
+#ifdef CONFIG_NETLABEL
+	struct hlist_head socket_netlbl_secattr;
+#endif
 } __randomize_layout;
 
 /*

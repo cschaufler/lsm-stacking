@@ -69,6 +69,9 @@ int selinux_netlbl_socket_setsockopt(struct socket *sock,
 int selinux_netlbl_socket_connect(struct sock *sk, struct sockaddr *addr);
 int selinux_netlbl_socket_connect_locked(struct sock *sk,
 					 struct sockaddr *addr);
+void selinux_socket_netlbl_secattr(struct sock *sk,
+				   struct netlbl_lsm_secattr **secattr,
+				   int *set);
 
 #else
 static inline void selinux_netlbl_cache_invalidate(void)
@@ -164,6 +167,10 @@ static inline int selinux_netlbl_socket_connect_locked(struct sock *sk,
 						       struct sockaddr *addr)
 {
 	return 0;
+}
+static inline void selinux_socket_netlbl_secattr(struct sock *sk,
+					struct netlbl_lsm_secattr **secattr)
+{
 }
 #endif /* CONFIG_NETLABEL */
 

@@ -33,6 +33,9 @@
 #include <linux/msg.h>
 #include <net/flow.h>
 #include <net/sock.h>
+#ifdef CONFIG_NETLABEL
+#include <net/netlabel.h>
+#endif
 
 #define MAX_LSM_EVM_XATTR	2
 
@@ -2790,3 +2793,50 @@ void security_bpf_prog_free(struct bpf_prog_aux *aux)
 	call_void_hook(bpf_prog_free_security, aux);
 }
 #endif /* CONFIG_BPF_SYSCALL */
+
+#ifdef CONFIG_NETLABEL
+int security_reconcile_netlbl(struct sock *sk)
+{
+	struct netlbl_lsm_secattr *prev = NULL;
+	struct netlbl_lsm_secattr *this = NULL;
+	int prev_set = 0;
+	int this_set = 0;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.socket_netlbl_secattr,
+				list) {
+		hp->hook.socket_netlbl_secattr(sk, &this, &this_set);
+		if (this_set == 0 || this == NULL)
+			continue;
+		if (prev != NULL) {
+			/*
+			 * Both unlabeled is easily acceptable.
+			 */
+			if (prev_set == NETLBL_NLTYPE_UNLABELED &&
+			    this_set == NETLBL_NLTYPE_UNLABELED)
+				continue;
+			/*
+			 * The nltype being different means that
+			 * the secattrs aren't comparible. Except
+			 * that ADDRSELECT means that couldn't know
+			 * when the socket was created.
+			 */
+			if (prev_set != this_set &&
+			    prev_set != NETLBL_NLTYPE_ADDRSELECT &&
+			    this_set != NETLBL_NLTYPE_ADDRSELECT)
+				return -EACCES;
+			/*
+			 * Count on the Netlabel system's judgement.
+			 */
+			if (!netlbl_secattr_equal(prev, this))
+				return -EACCES;
+		}
+		prev = this;
+		prev_set = this_set;
+	}
+	/*
+	 * No conflicts have been found.
+	 */
+	return 0;
+}
+#endif /* CONFIG_NETLABEL */

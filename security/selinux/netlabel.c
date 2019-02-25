@@ -642,3 +642,12 @@ int selinux_netlbl_socket_connect(struct sock *sk, struct sockaddr *addr)
 
 	return rc;
 }
+
+void selinux_socket_netlbl_secattr(struct sock *sk,
+				   struct netlbl_lsm_secattr **secattr,
+				   int *set)
+{
+	struct sk_security_struct *sksec = selinux_sock(sk);
+	*secattr = sksec->nlbl_secattr;
+	*set = sksec->nlbl_set;
+}
