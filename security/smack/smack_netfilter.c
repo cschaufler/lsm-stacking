@@ -89,6 +89,8 @@ static unsigned int smack_ipv4_output(void *priv,
 			return NF_DROP;
 		ssp->smk_set = rc;
 	}
+	if (security_reconcile_netlbl(sk))
+		return NF_DROP;
 
 	return NF_ACCEPT;
 }
