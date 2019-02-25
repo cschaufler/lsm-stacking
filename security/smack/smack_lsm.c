@@ -4572,6 +4572,14 @@ static int smack_dentry_create_files_as(struct dentry *dentry, int mode,
 	}
 	return 0;
 }
+void smack_socket_netlbl_secattr(struct sock *sk,
+				 struct netlbl_lsm_secattr **secattr,
+				 int *set)
+{
+	struct socket_smack *ssp = smack_sock(sk);
+	*secattr = &ssp->smk_out->smk_netlabel;
+	*set = ssp->smk_set;
+}
 
 struct lsm_blob_sizes smack_blob_sizes __lsm_ro_after_init = {
 	.lbs_cred = sizeof(struct task_smack),
@@ -4726,6 +4734,7 @@ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
 	LSM_HOOK_INIT(inode_copy_up, smack_inode_copy_up),
 	LSM_HOOK_INIT(inode_copy_up_xattr, smack_inode_copy_up_xattr),
 	LSM_HOOK_INIT(dentry_create_files_as, smack_dentry_create_files_as),
+	LSM_HOOK_INIT(socket_netlbl_secattr, smack_socket_netlbl_secattr),
 };
 
 

@@ -1891,5 +1891,14 @@ static inline void security_bpf_prog_free(struct bpf_prog_aux *aux)
 #endif /* CONFIG_SECURITY */
 #endif /* CONFIG_BPF_SYSCALL */
 
+#ifdef CONFIG_NETLABEL
+extern int security_reconcile_netlbl(struct sock *sk);
+#else
+static inline int security_reconcile_netlbl(struct sock *sk)
+{
+	return 0;
+}
+#endif
+
 #endif /* ! __LINUX_SECURITY_H */
 
