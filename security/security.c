@@ -2369,7 +2369,13 @@ int security_socket_bind(struct socket *sock, struct sockaddr *address, int addr
 
 int security_socket_connect(struct socket *sock, struct sockaddr *address, int addrlen)
 {
-	return call_int_hook(socket_connect, 0, sock, address, addrlen);
+	int rc;
+
+	rc = call_int_hook(socket_connect, 0, sock, address, addrlen);
+	if (rc)
+		return rc;
+
+	return security_reconcile_netlbl(sock->sk);
 }
 
 int security_socket_listen(struct socket *sock, int backlog)
@@ -2384,6 +2390,12 @@ int security_socket_accept(struct socket *sock, struct socket *newsock)
 
 int security_socket_sendmsg(struct socket *sock, struct msghdr *msg, int size)
 {
+	int rc;
+
+	rc = security_reconcile_netlbl(sock->sk);
+	if (rc)
+		return rc;
+
 	return call_int_hook(socket_sendmsg, 0, sock, msg, size);
 }
 
@@ -2803,28 +2815,33 @@ int security_reconcile_netlbl(struct sock *sk)
 	int this_set = 0;
 	struct security_hook_list *hp;
 
+	if (sk->sk_family != PF_INET && sk->sk_family != PF_INET6)
+		return 0;
+
 	hlist_for_each_entry(hp, &security_hook_heads.socket_netlbl_secattr,
 				list) {
 		hp->hook.socket_netlbl_secattr(sk, &this, &this_set);
+		/*
+		 * If the NLTYPE has been deferred it's not
+		 * possible to decide now. A decision will be made
+		 * later.
+		 */
+		if (this_set == NETLBL_NLTYPE_ADDRSELECT)
+			return 0;
 		if (this_set == 0 || this == NULL)
 			continue;
 		if (prev != NULL) {
 			/*
+			 * The nltype being different means that
+			 * the secattrs aren't comparible.
+			 */
+			if (prev_set != this_set)
+				return -EACCES;
+			/*
 			 * Both unlabeled is easily acceptable.
 			 */
-			if (prev_set == NETLBL_NLTYPE_UNLABELED &&
-			    this_set == NETLBL_NLTYPE_UNLABELED)
+			if (this_set == NETLBL_NLTYPE_UNLABELED)
 				continue;
-			/*
-			 * The nltype being different means that
-			 * the secattrs aren't comparible. Except
-			 * that ADDRSELECT means that couldn't know
-			 * when the socket was created.
-			 */
-			if (prev_set != this_set &&
-			    prev_set != NETLBL_NLTYPE_ADDRSELECT &&
-			    this_set != NETLBL_NLTYPE_ADDRSELECT)
-				return -EACCES;
 			/*
 			 * Count on the Netlabel system's judgement.
 			 */
