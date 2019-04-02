@@ -98,8 +98,7 @@ struct audit_buffer *netlbl_audit_start_common(int type,
 					       struct netlbl_audit *audit_info)
 {
 	struct audit_buffer *audit_buf;
-	char *secctx;
-	u32 secctx_len;
+	struct lsm_context lc;
 
 	if (audit_enabled == AUDIT_OFF)
 		return NULL;
@@ -113,10 +112,10 @@ struct audit_buffer *netlbl_audit_start_common(int type,
 			 audit_info->sessionid);
 
 	if (lsm_export_any(&audit_info->le) &&
-	    security_secid_to_secctx(&audit_info->le, &secctx,
-				     &secctx_len) == 0) {
-		audit_log_format(audit_buf, " subj=%s", secctx);
-		security_release_secctx(secctx, secctx_len);
+	    security_secid_to_secctx(&audit_info->le, &lc.context,
+				     &lc.len) == 0) {
+		audit_log_format(audit_buf, " subj=%s", lc.context);
+		security_release_secctx(&lc);
 	}
 
 	return audit_buf;

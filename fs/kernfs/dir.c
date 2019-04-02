@@ -532,9 +532,12 @@ void kernfs_put(struct kernfs_node *kn)
 	kfree_const(kn->name);
 
 	if (kn->iattr) {
-		if (kn->iattr->ia_secdata)
-			security_release_secctx(kn->iattr->ia_secdata,
-						kn->iattr->ia_secdata_len);
+		if (kn->iattr->ia_secdata) {
+			struct lsm_context lc;	/* Scaffolding -Casey */
+			lc.context = kn->iattr->ia_secdata;
+			lc.len = kn->iattr->ia_secdata_len;
+			security_release_secctx(&lc);
+		}
 		simple_xattrs_free(&kn->iattr->xattrs);
 		kmem_cache_free(kernfs_iattrs_cache, kn->iattr);
 	}
