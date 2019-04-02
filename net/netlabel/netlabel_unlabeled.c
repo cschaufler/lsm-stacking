@@ -450,7 +450,7 @@ unlhsh_add_return:
 	rcu_read_unlock();
 	if (audit_buf != NULL) {
 		struct lsm_context lc;
-		if (security_secid_to_secctx(l, &lc.context, &lc.len) == 0) {
+		if (security_secid_to_secctx(l, &lc) == 0) {
 			audit_log_format(audit_buf, " sec_obj=%s", lc.context);
 			security_release_secctx(&lc);
 		}
@@ -504,8 +504,7 @@ static int netlbl_unlhsh_remove_addr4(struct net *net,
 		if (dev != NULL)
 			dev_put(dev);
 		if (entry != NULL &&
-		    security_secid_to_secctx(&entry->le,
-					     &lc.context, &lc.len) == 0) {
+		    security_secid_to_secctx(&entry->le, &lc) == 0) {
 			audit_log_format(audit_buf, " sec_obj=%s", lc.context);
 			security_release_secctx(&lc);
 		}
@@ -544,8 +543,6 @@ static int netlbl_unlhsh_remove_addr6(struct net *net,
 	struct netlbl_unlhsh_addr6 *entry;
 	struct audit_buffer *audit_buf;
 	struct net_device *dev;
-	char *secctx;
-	u32 secctx_len;
 
 	spin_lock(&netlbl_unlhsh_lock);
 	list_entry = netlbl_af6list_remove(addr, mask, &iface->addr6_list);
@@ -566,8 +563,7 @@ static int netlbl_unlhsh_remove_addr6(struct net *net,
 		if (dev != NULL)
 			dev_put(dev);
 		if (entry != NULL &&
-		    security_secid_to_secctx(&entry->le,
-					     &lc.context, &lc.len) == 0) {
+		    security_secid_to_secctx(&entry->le, &lc) == 0) {
 			audit_log_format(audit_buf, " sec_obj=%s", lc.context);
 			security_release_secctx(&lc);
 		}
@@ -1137,7 +1133,7 @@ static int netlbl_unlabel_staticlist_gen(u32 cmd,
 		lep = (struct lsm_export *)&addr6->le;
 	}
 
-	ret_val = security_secid_to_secctx(lep, &lc.context, &lc.len);
+	ret_val = security_secid_to_secctx(lep, &lc);
 	if (ret_val != 0)
 		goto list_cb_failure;
 	ret_val = nla_put(cb_arg->skb,

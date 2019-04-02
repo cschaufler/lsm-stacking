@@ -938,7 +938,7 @@ static int audit_log_pid_context(struct audit_context *context, pid_t pid,
 				 unsigned int sessionid,
 				 struct lsm_export *l, char *comm)
 {
-	struct lsm_context lc = { .context = NULL, };
+	struct lsm_context lc;
 	struct audit_buffer *ab;
 	int rc = 0;
 
@@ -950,7 +950,7 @@ static int audit_log_pid_context(struct audit_context *context, pid_t pid,
 			 from_kuid(&init_user_ns, auid),
 			 from_kuid(&init_user_ns, uid), sessionid);
 	if (lsm_export_any(l)) {
-		if (security_secid_to_secctx(l, &lc.context, &lc.len)) {
+		if (security_secid_to_secctx(l, &lc)) {
 			audit_log_format(ab, " obj=(none)");
 			rc = 1;
 		} else {
@@ -1190,8 +1190,8 @@ static void show_special(struct audit_context *context, int *call_panic)
 				 from_kgid(&init_user_ns, context->ipc.gid),
 				 context->ipc.mode);
 		if (lsm_export_any(l)) {
-			struct lsm_context lc = { .context = NULL, };
-			if (security_secid_to_secctx(l, &lc.context, &lc.len)) {
+			struct lsm_context lc;
+			if (security_secid_to_secctx(l, &lc)) {
 				audit_log_format(ab, " osid=(unknown)");
 				*call_panic = 1;
 			} else {
@@ -1342,7 +1342,7 @@ static void audit_log_name(struct audit_context *context, struct audit_names *n,
 	if (lsm_export_any(&n->olsm)) {
 		struct lsm_context lc;
 
-		if (security_secid_to_secctx(&n->olsm, &lc.context, &lc.len)) {
+		if (security_secid_to_secctx(&n->olsm, &lc)) {
 			audit_log_format(ab, " osid=(unknown)");
 			if (call_panic)
 				*call_panic = 2;
