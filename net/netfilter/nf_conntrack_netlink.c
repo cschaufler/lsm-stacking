@@ -337,7 +337,7 @@ static int ctnetlink_dump_secctx(struct sk_buff *skb, const struct nf_conn *ct)
 	le.selinux = ct->secmark;
 	le.smack = ct->secmark;
 
-	ret = security_secid_to_secctx(&le, &lc.context, &lc.len);
+	ret = security_secid_to_secctx(&le, &lc);
 	if (ret)
 		return 0;
 
@@ -620,20 +620,21 @@ static inline size_t ctnetlink_acct_size(const struct nf_conn *ct)
 static inline int ctnetlink_secctx_size(const struct nf_conn *ct)
 {
 #ifdef CONFIG_NF_CONNTRACK_SECMARK
-	int len, ret;
+	int ret;
 	struct lsm_export le;
+	struct lsm_context lc;
 
 	lsm_export_init(&le);
-	le.flags = LSM_EXPORT_SELINUX | LSM_EXPORT_SMACK;
+	le.flags = LSM_EXPORT_SELINUX | LSM_EXPORT_SMACK | LSM_EXPORT_LENGTH;
 	le.selinux = ct->secmark;
 	le.smack = ct->secmark;
 
-	ret = security_secid_to_secctx(&le, NULL, &len);
+	ret = security_secid_to_secctx(&le, &lc);
 	if (ret)
 		return 0;
 
 	return nla_total_size(0) /* CTA_SECCTX */
-	       + nla_total_size(sizeof(char) * len); /* CTA_SECCTX_NAME */
+	       + nla_total_size(sizeof(char) * lc.len); /* CTA_SECCTX_NAME */
 #else
 	return 0;
 #endif

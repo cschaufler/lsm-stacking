@@ -112,8 +112,7 @@ struct audit_buffer *netlbl_audit_start_common(int type,
 			 audit_info->sessionid);
 
 	if (lsm_export_any(&audit_info->le) &&
-	    security_secid_to_secctx(&audit_info->le, &lc.context,
-				     &lc.len) == 0) {
+	    security_secid_to_secctx(&audit_info->le, &lc) == 0) {
 		audit_log_format(audit_buf, " subj=%s", lc.context);
 		security_release_secctx(&lc);
 	}

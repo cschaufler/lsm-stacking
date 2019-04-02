@@ -1428,8 +1428,7 @@ static int audit_receive_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	}
 	case AUDIT_SIGNAL_INFO:
 		if (lsm_export_any(&audit_sig_lsm)) {
-			err = security_secid_to_secctx(&audit_sig_lsm,
-						       &lc.context, &lc.len);
+			err = security_secid_to_secctx(&audit_sig_lsm, &lc);
 			if (err)
 				return err;
 		}
@@ -2076,7 +2075,7 @@ int audit_log_task_context(struct audit_buffer *ab)
 	if (!lsm_export_any(&le))
 		return 0;
 
-	error = security_secid_to_secctx(&le, &lc.context, &lc.len);
+	error = security_secid_to_secctx(&le, &lc);
 	if (error) {
 		if (error != -EINVAL)
 			goto error_path;
