@@ -3121,7 +3121,7 @@ static void binder_transaction(struct binder_proc *proc,
 		struct lsm_export le;
 
 		security_task_getsecid(proc->tsk, &le);
-		ret = security_secid_to_secctx(&le, &lc.context, &lc.len);
+		ret = security_secid_to_secctx(&le, &lc);
 		if (ret) {
 			return_error = BR_FAILED_REPLY;
 			return_error_param = ret;
