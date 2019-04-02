@@ -307,9 +307,9 @@ nla_put_failure:
 
 static u32 nfqnl_get_sk_secctx(struct sk_buff *skb, char **secdata)
 {
-	u32 seclen = 0;
 #if IS_ENABLED(CONFIG_NETWORK_SECMARK)
 	struct lsm_export le;
+	struct lsm_context lc = { .context = NULL, .len = 0, };
 
 	if (!skb || !sk_fullsock(skb->sk))
 		return 0;
@@ -322,12 +322,15 @@ static u32 nfqnl_get_sk_secctx(struct sk_buff *skb, char **secdata)
 		le.flags = LSM_EXPORT_SELINUX | LSM_EXPORT_SMACK;
 		le.selinux = skb->secmark;
 		le.smack = skb->secmark;
-		security_secid_to_secctx(&le, secdata, &seclen);
+		security_secid_to_secctx(&le, &lc.context, &lc.len);
+		*secdata = lc.context;
 	}
 
 	read_unlock_bh(&skb->sk->sk_callback_lock);
+	return lc.len;
+#else
+	return 0;
 #endif
-	return seclen;
 }
 
 static u32 nfqnl_get_bridge_size(struct nf_queue_entry *entry)
@@ -403,8 +406,7 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	enum ip_conntrack_info uninitialized_var(ctinfo);
 	struct nfnl_ct_hook *nfnl_ct;
 	bool csum_verify;
-	char *secdata = NULL;
-	u32 seclen = 0;
+	struct lsm_context lc = { .context = NULL, };
 
 	size =    nlmsg_total_size(sizeof(struct nfgenmsg))
 		+ nla_total_size(sizeof(struct nfqnl_msg_packet_hdr))
@@ -470,9 +472,9 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	}
 
 	if ((queue->flags & NFQA_CFG_F_SECCTX) && entskb->sk) {
-		seclen = nfqnl_get_sk_secctx(entskb, &secdata);
-		if (seclen)
-			size += nla_total_size(seclen);
+		lc.len = nfqnl_get_sk_secctx(entskb, &lc.context);
+		if (lc.len)
+			size += nla_total_size(lc.len);
 	}
 
 	skb = alloc_skb(size, GFP_ATOMIC);
@@ -605,7 +607,7 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	    nfqnl_put_sk_uidgid(skb, entskb->sk) < 0)
 		goto nla_put_failure;
 
-	if (seclen && nla_put(skb, NFQA_SECCTX, seclen, secdata))
+	if (lc.len && nla_put(skb, NFQA_SECCTX, lc.len, lc.context))
 		goto nla_put_failure;
 
 	if (ct && nfnl_ct->build(skb, ct, ctinfo, NFQA_CT, NFQA_CT_INFO) < 0)
@@ -633,8 +635,8 @@ nfqnl_build_packet_message(struct net *net, struct nfqnl_instance *queue,
 	}
 
 	nlh->nlmsg_len = skb->len;
-	if (seclen)
-		security_release_secctx(secdata, seclen);
+	if (lc.context)
+		security_release_secctx(&lc);
 	return skb;
 
 nla_put_failure:
@@ -642,8 +644,8 @@ nla_put_failure:
 	kfree_skb(skb);
 	net_err_ratelimited("nf_queue: error creating packet message\n");
 nlmsg_failure:
-	if (seclen)
-		security_release_secctx(secdata, seclen);
+	if (lc.context)
+		security_release_secctx(&lc);
 	return NULL;
 }
 
