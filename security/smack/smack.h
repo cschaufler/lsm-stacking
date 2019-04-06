@@ -544,4 +544,19 @@ static inline void smk_ad_setfield_u_net_sk(struct smk_audit_info *a,
 }
 #endif
 
+#ifdef CONFIG_SECURITY_SMACK_NETFILTER
+extern bool smack_use_secmark;
+void smack_secmark_refcount_inc(void);
+
+static inline bool smk_use_secmark(void)
+{
+	return smack_use_secmark;
+}
+#else
+static inline bool smk_use_secmark(void)
+{
+	return false;
+}
+#endif
+
 #endif  /* _SECURITY_SMACK_H */
