@@ -1279,7 +1279,8 @@ void netlbl_req_delattr(struct request_sock *req)
  *
  * Description:
  * Attach the correct label to the given packet using the security attributes
- * specified in @secattr.  Returns zero on success, negative values on failure.
+ * specified in @secattr.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_skbuff_setattr(struct sk_buff *skb,
@@ -1316,6 +1317,8 @@ int netlbl_skbuff_setattr(struct sk_buff *skb,
 		default:
 			ret_val = -ENOENT;
 		}
+		if (ret_val == 0)
+			ret_val = entry->type;
 		break;
 #if IS_ENABLED(CONFIG_IPV6)
 	case AF_INET6:
@@ -1339,6 +1342,8 @@ int netlbl_skbuff_setattr(struct sk_buff *skb,
 		default:
 			ret_val = -ENOENT;
 		}
+		if (ret_val == 0)
+			ret_val = entry->type;
 		break;
 #endif /* IPv6 */
 	default:
