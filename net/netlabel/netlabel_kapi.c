@@ -1102,14 +1102,16 @@ int netlbl_sock_getattr(struct sock *sk,
  * Description:
  * Attach the correct label to the given connected socket using the security
  * attributes specified in @secattr.  The caller is responsible for ensuring
- * that @sk is locked.  Returns zero on success, negative values on failure.
+ * that @sk is locked.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_conn_setattr(struct sock *sk,
 			struct sockaddr *addr,
 			const struct netlbl_lsm_secattr *secattr)
 {
-	int ret_val;
+	int rc;
+	int ret_val = 0;
 	struct sockaddr_in *addr4;
 #if IS_ENABLED(CONFIG_IPV6)
 	struct sockaddr_in6 *addr6;
@@ -1126,16 +1128,17 @@ int netlbl_conn_setattr(struct sock *sk,
 			ret_val = -ENOENT;
 			goto conn_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CIPSOV4:
-			ret_val = cipso_v4_sock_setattr(sk,
-							entry->cipso, secattr);
+			rc = cipso_v4_sock_setattr(sk, entry->cipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			/* just delete the protocols we support for right now
 			 * but we could remove other protocols if needed */
 			netlbl_sock_delattr(sk);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1150,16 +1153,17 @@ int netlbl_conn_setattr(struct sock *sk,
 			ret_val = -ENOENT;
 			goto conn_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CALIPSO:
-			ret_val = calipso_sock_setattr(sk,
-						       entry->calipso, secattr);
+			rc = calipso_sock_setattr(sk, entry->calipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			/* just delete the protocols we support for right now
 			 * but we could remove other protocols if needed */
 			netlbl_sock_delattr(sk);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
