@@ -4146,6 +4146,8 @@ access_check:
 		rc = netlbl_req_setattr(req, &skp->smk_netlabel);
 	else
 		rc = netlbl_req_setattr(req, &smack_net_ambient->smk_netlabel);
+	if (rc >= 0)
+		return 0;
 
 	return rc;
 }

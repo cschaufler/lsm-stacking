@@ -1186,12 +1186,14 @@ conn_setattr_return:
  *
  * Description:
  * Attach the correct label to the given socket using the security attributes
- * specified in @secattr.  Returns zero on success, negative values on failure.
+ * specified in @secattr.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_req_setattr(struct request_sock *req,
 		       const struct netlbl_lsm_secattr *secattr)
 {
+	int rc;
 	int ret_val;
 	struct netlbl_dommap_def *entry;
 	struct inet_request_sock *ireq = inet_rsk(req);
@@ -1205,14 +1207,15 @@ int netlbl_req_setattr(struct request_sock *req,
 			ret_val = -ENOENT;
 			goto req_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CIPSOV4:
-			ret_val = cipso_v4_req_setattr(req,
-						       entry->cipso, secattr);
+			rc = cipso_v4_req_setattr(req, entry->cipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			netlbl_req_delattr(req);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1226,14 +1229,15 @@ int netlbl_req_setattr(struct request_sock *req,
 			ret_val = -ENOENT;
 			goto req_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CALIPSO:
-			ret_val = calipso_req_setattr(req,
-						      entry->calipso, secattr);
+			rc = calipso_req_setattr(req, entry->calipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			netlbl_req_delattr(req);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
