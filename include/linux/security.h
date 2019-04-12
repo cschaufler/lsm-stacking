@@ -117,6 +117,22 @@ static inline bool lsm_export_equal(struct lsm_export *l, struct lsm_export *m)
 	return true;
 }
 
+/*
+ * After calling security_secctx_to_secid() one, and only one
+ * of the LSM fields will be set in the lsm_export. Return
+ * whichever one was set. Used to supply secmarks.
+ */
+static inline u32 lsm_export_one_secid(struct lsm_export *l)
+{
+	if (l->flags & LSM_EXPORT_SELINUX)
+		return l->selinux;
+	if (l->flags & LSM_EXPORT_SMACK)
+		return l->smack;
+	if (l->flags & LSM_EXPORT_APPARMOR)
+		return l->apparmor;
+	return 0;
+}
+
 /* Text representation of LSM specific security information - a "context" */
 struct lsm_context {
 	char	*context;
