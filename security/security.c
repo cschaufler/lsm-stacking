@@ -1992,7 +1992,7 @@ int security_secctx_to_secid(const char *secdata, u32 seclen,
 {
 	struct lsm_context lc;
 
-	lc.context = secdata;
+	lc.context = (char *)secdata;
 	lc.len = seclen;
 	lsm_export_init(l);
 	return call_one_int_hook(secctx_to_secid, 0, &lc, l);
@@ -2025,7 +2025,14 @@ EXPORT_SYMBOL(security_inode_setsecctx);
 
 int security_inode_getsecctx(struct inode *inode, void **ctx, u32 *ctxlen)
 {
-	return call_int_hook(inode_getsecctx, -EOPNOTSUPP, inode, ctx, ctxlen);
+	struct lsm_context lc = { .context = NULL, .len = 0, };
+	int rc;
+
+	rc = call_int_hook(inode_getsecctx, -EOPNOTSUPP, inode, &lc);
+
+	*ctx = (void *)lc.context;
+	*ctxlen = lc.len;
+	return rc;
 }
 EXPORT_SYMBOL(security_inode_getsecctx);
 
