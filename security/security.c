@@ -420,6 +420,11 @@ static int lsm_append(char *new, char **result)
 	return 0;
 }
 
+/*
+ * Current index to use while initializing the lsmblob secid list.
+ */
+static int lsm_secidat __initdata;
+
 /**
  * security_add_hooks - Add a modules hooks to the hook lists.
  * @hooks: the hooks to add
@@ -431,11 +436,35 @@ static int lsm_append(char *new, char **result)
 void __init security_add_hooks(struct security_hook_list *hooks, int count,
 				char *lsm)
 {
+	int secidat = 0;
 	int i;
 
 	for (i = 0; i < count; i++) {
 		hooks[i].lsm = lsm;
 		hlist_add_tail_rcu(&hooks[i].list, hooks[i].head);
+		/*
+		 * If this is one of the hooks that uses a secid
+		 * note it so that a slot can in allocated for the
+		 * secid in the lsmblob structure.
+		 */
+		if (hooks[i].head == &security_hook_heads.secid_to_secctx ||
+		    hooks[i].head == &security_hook_heads.audit_rule_match ||
+		    hooks[i].head == &security_hook_heads.kernel_act_as ||
+		    hooks[i].head ==
+			&security_hook_heads.socket_getpeersec_dgram ||
+		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
+		    hooks[i].head == &security_hook_heads.secid_to_secctx ||
+		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
+		    hooks[i].head == &security_hook_heads.task_getsecid ||
+		    hooks[i].head == &security_hook_heads.inode_getsecid ||
+		    hooks[i].head == &security_hook_heads.cred_getsecid) {
+			if (secidat == 0) {
+				secidat = ++lsm_secidat;
+				init_debug("%s assigned lsmblob slot %d\n",
+					hooks[i].lsm, secidat);
+			}
+			hooks[i].secidat = secidat;
+		}
 	}
 	if (lsm_append(lsm, &lsm_names) < 0)
 		panic("%s - Cannot get early memory.\n", __func__);

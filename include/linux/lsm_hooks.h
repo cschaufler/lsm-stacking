@@ -2038,6 +2038,7 @@ struct security_hook_list {
 	struct hlist_head		*head;
 	union security_list_options	hook;
 	char				*lsm;
+	int				secidat;
 } __randomize_layout;
 
 /*

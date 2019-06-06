@@ -76,6 +76,68 @@ enum lsm_event {
 	LSM_POLICY_CHANGE,
 };
 
+/*
+ * Data exported by the security modules
+ * Entry 0 always exists and is used for a secmark, if needed.
+ */
+#define LSMDATA_ENTRIES ( \
+	1 + \
+	IS_ENABLED(CONFIG_SECURITY_SELINUX) ? 1 : 0 + \
+	IS_ENABLED(CONFIG_SECURITY_SMACK) ? 1 : 0 + \
+	IS_ENABLED(CONFIG_SECURITY_APPARMOR) ? 1 : 0 )
+
+struct lsmblob {
+	u32     secid[LSMDATA_ENTRIES];
+};
+
+/**
+ * lsmblob_init - initialize an lsmblob structure.
+ * @l: Pointer to the data to initialize
+ * @secid: The initial secid value
+ *
+ * Set all secid for all modules to the specified value.
+ */
+static inline void lsmblob_init(struct lsmblob *l, u32 secid)
+{
+	int i;
+
+	for (i = 0; i < LSMDATA_ENTRIES; i++)
+		l->secid[i] = secid;
+}
+
+/**
+ * lsmblob_is_set - report if there is an value in the lsmblob
+ * @l: Pointer to the exported LSM data
+ *
+ * Returns true if there is a secid set, false otherwise
+ */
+static inline bool lsmblob_is_set(struct lsmblob *l)
+{
+	int i;
+
+	for (i = 0; i < LSMDATA_ENTRIES; i++)
+		if (l->secid[i] != 0)
+			return true;
+	return false;
+}
+
+/**
+ * lsmblob_equal - report if the two lsmblob's are equal
+ * @l: Pointer to one LSM data
+ * @m: Pointer to the other LSM data
+ *
+ * Returns true if all entries in the two are equal, false otherwise
+ */
+static inline bool lsmblob_equal(struct lsmblob *l, struct lsmblob *m)
+{
+	int i;
+
+	for (i = 0; i < LSMDATA_ENTRIES; i++)
+		if (l->secid[i] != m->secid[i])
+			return false;
+	return true;
+}
+
 /* These functions are in security/commoncap.c */
 extern int cap_capable(const struct cred *cred, struct user_namespace *ns,
 		       int cap, unsigned int opts);
