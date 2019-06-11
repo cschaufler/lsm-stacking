@@ -46,7 +46,9 @@ static struct kmem_cache *lsm_file_cache;
 static struct kmem_cache *lsm_inode_cache;
 
 char *lsm_names;
-static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init;
+static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init = {
+	.lbs_task = sizeof(int),
+};
 
 /* Boot-time LSM user choice */
 static __initdata const char *chosen_lsm_order;
@@ -1572,14 +1574,29 @@ int security_file_open(struct file *file)
 
 int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
 {
+	int *odisplay = current->security;
+	int *ndisplay;
 	int rc = lsm_task_alloc(task);
 
-	if (rc)
-		return rc;
-	rc = call_int_hook(task_alloc, 0, task, clone_flags);
 	if (unlikely(rc))
+		return rc;
+
+	rc = call_int_hook(task_alloc, 0, task, clone_flags);
+	if (unlikely(rc)) {
 		security_task_free(task);
-	return rc;
+		return rc;
+	}
+
+	ndisplay = task->security;
+	if (ndisplay == NULL)
+		return 0;
+
+	if (odisplay == NULL)
+		*ndisplay = 0;
+	else
+		*ndisplay = *odisplay;
+
+	return 0;
 }
 
 void security_task_free(struct task_struct *task)
@@ -1965,9 +1982,25 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 				char **value)
 {
 	struct security_hook_list *hp;
+	int *display = current->security;
+
+	if (!strcmp(name, "display")) {
+		hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx,
+				     list) {
+			if (*display == 0 || hp->secidat == *display) {
+				*value = kstrdup(hp->lsm, GFP_KERNEL);
+				if (*value)
+					return strlen(hp->lsm);
+				return -ENOMEM;
+			}
+		}
+		return -EINVAL;
+	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.getprocattr, list) {
 		if (lsm != NULL && strcmp(lsm, hp->lsm))
+			continue;
+		if (lsm == NULL && *display != 0 && *display != hp->secidat)
 			continue;
 		return hp->hook.getprocattr(p, name, value);
 	}
@@ -1978,9 +2011,26 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 			 size_t size)
 {
 	struct security_hook_list *hp;
+	int *display = current->security;
+	char *vp = value;
+	int len;
+
+	if (!strcmp(name, "display")) {
+		hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx,
+				     list) {
+			len = strlen(hp->lsm);
+			if (size >= len && !strncmp(value, hp->lsm, len)) {
+				*display = hp->secidat;
+				return size;
+			}
+		}
+		return -EINVAL;
+	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.setprocattr, list) {
 		if (lsm != NULL && strcmp(lsm, hp->lsm))
+			continue;
+		if (lsm == NULL && *display != 0 && *display != hp->secidat)
 			continue;
 		return hp->hook.setprocattr(name, value, size);
 	}
@@ -2000,38 +2050,41 @@ EXPORT_SYMBOL(security_ismaclabel);
 
 int security_secid_to_secctx(struct lsmblob *l, char **secdata, u32 *seclen)
 {
+	int *display = current->security;
 	struct security_hook_list *hp;
-	int rc;
 
-	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list) {
-		rc = hp->hook.secid_to_secctx(l->secid[hp->secidat],
-					      secdata, seclen);
-		if (rc != 0)
-			return rc;
-	}
+	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list)
+		if (*display == 0 || *display == hp->secidat)
+			return hp->hook.secid_to_secctx(l->secid[hp->secidat],
+							secdata, seclen);
 	return 0;
 }
 EXPORT_SYMBOL(security_secid_to_secctx);
 
 int security_secctx_to_secid(const char *secdata, u32 seclen, struct lsmblob *l)
 {
+	int *display = current->security;
 	struct security_hook_list *hp;
-	int rc;
 
 	lsmblob_init(l, 0);
-	hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid, list) {
-		rc = hp->hook.secctx_to_secid(secdata, seclen,
-					      &l->secid[hp->secidat]);
-		if (rc != 0)
-			return rc;
-	}
+	hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid, list)
+		if (*display == 0 || *display == hp->secidat)
+			return hp->hook.secctx_to_secid(secdata, seclen,
+							&l->secid[hp->secidat]);
 	return 0;
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
 
 void security_release_secctx(char *secdata, u32 seclen)
 {
-	call_void_hook(release_secctx, secdata, seclen);
+	int *display = current->security;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.release_secctx, list)
+		if (*display == 0 || *display == hp->secidat) {
+			hp->hook.release_secctx(secdata, seclen);
+			return;
+		}
 }
 EXPORT_SYMBOL(security_release_secctx);
 
@@ -2156,8 +2209,15 @@ EXPORT_SYMBOL(security_sock_rcv_skb);
 int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				      int __user *optlen, unsigned len)
 {
-	return call_int_hook(socket_getpeersec_stream, -ENOPROTOOPT, sock,
-				optval, optlen, len);
+	int *display = current->security;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.socket_getpeersec_stream,
+			     list)
+		if (*display == 0 || *display == hp->secidat)
+			return hp->hook.socket_getpeersec_stream(sock, optval,
+								 optlen, len);
+	return -ENOPROTOOPT;
 }
 
 int security_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb,
