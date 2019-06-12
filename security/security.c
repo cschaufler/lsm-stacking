@@ -455,7 +455,6 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		    hooks[i].head ==
 			&security_hook_heads.socket_getpeersec_dgram ||
 		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
-		    hooks[i].head == &security_hook_heads.secid_to_secctx ||
 		    hooks[i].head == &security_hook_heads.release_secctx ||
 		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
 		    hooks[i].head == &security_hook_heads.task_getsecid ||
@@ -2048,15 +2047,17 @@ int security_ismaclabel(const char *name)
 }
 EXPORT_SYMBOL(security_ismaclabel);
 
-int security_secid_to_secctx(struct lsmblob *l, char **secdata, u32 *seclen)
+int security_secid_to_secctx(struct lsmblob *l, struct lsmcontext *cp)
 {
 	int *display = current->security;
 	struct security_hook_list *hp;
 
 	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list)
-		if (*display == 0 || *display == hp->secidat)
+		if (*display == 0 || *display == hp->secidat) {
+			cp->slot = hp->secidat;
 			return hp->hook.secid_to_secctx(l->secid[hp->secidat],
-							secdata, seclen);
+							&cp->context, &cp->len);
+		}
 	return 0;
 }
 EXPORT_SYMBOL(security_secid_to_secctx);
