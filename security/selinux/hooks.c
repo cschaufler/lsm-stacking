@@ -103,6 +103,7 @@
 #include "avc_ss.h"
 
 struct selinux_state selinux_state;
+int selinux_lsmblob_slot;
 
 /* SECMARK reference count */
 static atomic_t selinux_secmark_refcount = ATOMIC_INIT(0);
@@ -6877,7 +6878,9 @@ static __init int selinux_init(void)
 
 	hashtab_cache_init();
 
-	security_add_hooks(selinux_hooks, ARRAY_SIZE(selinux_hooks), "selinux");
+	selinux_lsmblob_slot = security_add_hooks(selinux_hooks,
+						  ARRAY_SIZE(selinux_hooks),
+						  "selinux");
 
 	if (avc_add_callback(selinux_netcache_avc_callback, AVC_CALLBACK_RESET))
 		panic("SELinux: Unable to register AVC netcache callback\n");

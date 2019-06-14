@@ -60,6 +60,7 @@ static LIST_HEAD(smk_ipv6_port_list);
 #endif
 static struct kmem_cache *smack_inode_cache;
 int smack_enabled;
+int smack_lsmblob_slot;
 
 #define A(s) {"smack"#s, sizeof("smack"#s) - 1, Opt_##s}
 static struct {
@@ -4749,7 +4750,9 @@ static __init int smack_init(void)
 	/*
 	 * Register with LSM
 	 */
-	security_add_hooks(smack_hooks, ARRAY_SIZE(smack_hooks), "smack");
+	smack_lsmblob_slot = security_add_hooks(smack_hooks,
+						ARRAY_SIZE(smack_hooks),
+						"smack");
 	smack_enabled = 1;
 
 	pr_info("Smack:  Initializing.\n");

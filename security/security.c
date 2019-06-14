@@ -434,11 +434,14 @@ static int lsm_secidat __initdata;
  * @lsm: the name of the security module
  *
  * Each LSM has to register its hooks with the infrastructure.
+ *
+ * Returns the slot number in the lsmblob structure if one is
+ * allocated or LSM_INVALID_SLOT if one was not allocated.
  */
-void __init security_add_hooks(struct security_hook_list *hooks, int count,
+int __init security_add_hooks(struct security_hook_list *hooks, int count,
 				char *lsm)
 {
-	int secidat = 0;
+	int secidat = LSM_INVALID_SLOT;
 	int i;
 
 	for (i = 0; i < count; i++) {
@@ -462,7 +465,7 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		    hooks[i].head == &security_hook_heads.task_getsecid ||
 		    hooks[i].head == &security_hook_heads.inode_getsecid ||
 		    hooks[i].head == &security_hook_heads.cred_getsecid) {
-			if (secidat == 0) {
+			if (secidat == LSM_INVALID_SLOT) {
 				secidat = ++lsm_secidat;
 				init_debug("%s assigned lsmblob slot %d\n",
 					hooks[i].lsm, secidat);
@@ -472,6 +475,8 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 	}
 	if (lsm_append(lsm, &lsm_names) < 0)
 		panic("%s - Cannot get early memory.\n", __func__);
+
+	return secidat;
 }
 
 int call_lsm_notifier(enum lsm_event event, void *data)
