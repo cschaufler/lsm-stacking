@@ -68,6 +68,7 @@
 struct netlbl_lsm_secattr;
 
 extern int selinux_enabled;
+extern int selinux_lsmblob_slot;
 
 /* Policy capabilities */
 enum {
