@@ -459,6 +459,8 @@ int __init security_add_hooks(struct security_hook_list *hooks, int count,
 		    hooks[i].head == &security_hook_heads.kernel_act_as ||
 		    hooks[i].head ==
 			&security_hook_heads.socket_getpeersec_dgram ||
+		    hooks[i].head == &security_hook_heads.getprocattr ||
+		    hooks[i].head == &security_hook_heads.setprocattr ||
 		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
 		    hooks[i].head == &security_hook_heads.release_secctx ||
 		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
@@ -2260,7 +2262,9 @@ int security_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb,
 			     list) {
 		rc = hp->hook.socket_getpeersec_dgram(sock, skb,
 						      &l->secid[hp->secidat]);
-		if (rc != 0)
+		if (rc == -ENOPROTOOPT)
+			rc = 0;
+		else if (rc != 0)
 			break;
 	}
 	return rc;
