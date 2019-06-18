@@ -458,6 +458,7 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 			&security_hook_heads.socket_getpeersec_dgram ||
 		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
 		    hooks[i].head == &security_hook_heads.secid_to_secctx ||
+		    hooks[i].head == &security_hook_heads.release_secctx ||
 		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
 		    hooks[i].head == &security_hook_heads.task_getsecid ||
 		    hooks[i].head == &security_hook_heads.inode_getsecid ||
@@ -2083,16 +2084,19 @@ int security_secctx_to_secid(const char *secdata, u32 seclen, struct lsmblob *l)
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
 
-void security_release_secctx(char *secdata, u32 seclen)
+void security_release_secctx(struct lsmcontext *cp)
 {
-	int *display = current->security;
 	struct security_hook_list *hp;
 
 	hlist_for_each_entry(hp, &security_hook_heads.release_secctx, list)
-		if (*display == LSMDATA_INVALID || *display == hp->slot) {
-			hp->hook.release_secctx(secdata, seclen);
+		if (cp->slot == hp->slot) {
+			hp->hook.release_secctx(cp->context, cp->len);
+			lsmcontext_init(cp, NULL, 0, 0);
 			return;
 		}
+
+	pr_warn("%s context \"%s\" from slot %d not released\n", __func__,
+		cp->context, cp->slot);
 }
 EXPORT_SYMBOL(security_release_secctx);
 
