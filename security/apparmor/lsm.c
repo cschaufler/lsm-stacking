@@ -47,6 +47,9 @@
 /* Flag indicating whether initialization completed */
 int apparmor_initialized;
 
+/* Slot for the AppArmor secid in the lsmblob structure */
+int apparmor_lsmblob_slot;
+
 DEFINE_PER_CPU(struct aa_buffers, aa_buffers);
 
 
@@ -1678,8 +1681,9 @@ static int __init apparmor_init(void)
 		aa_free_root_ns();
 		goto buffers_out;
 	}
-	security_add_hooks(apparmor_hooks, ARRAY_SIZE(apparmor_hooks),
-				"apparmor");
+	apparmor_lsmblob_slot = security_add_hooks(apparmor_hooks,
+						   ARRAY_SIZE(apparmor_hooks),
+						   "apparmor");
 
 	/* Report that AppArmor successfully initialized */
 	apparmor_initialized = 1;

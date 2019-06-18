@@ -437,9 +437,12 @@ static int lsm_slot __initdata;
  * Each LSM has to register its hooks with the infrastructure.
  * If the LSM is using hooks that export secids allocate a slot
  * for it in the lsmblob.
+ *
+ * Returns the slot number in the lsmblob structure if one is
+ * allocated or LSMBLOB_INVALID if one was not allocated.
  */
-void __init security_add_hooks(struct security_hook_list *hooks, int count,
-				char *lsm)
+int __init security_add_hooks(struct security_hook_list *hooks, int count,
+			      char *lsm)
 {
 	int slot = LSMBLOB_INVALID;
 	int i;
@@ -479,6 +482,8 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 	}
 	if (lsm_append(lsm, &lsm_names) < 0)
 		panic("%s - Cannot get early memory.\n", __func__);
+
+	return slot;
 }
 
 int call_lsm_notifier(enum lsm_event event, void *data)
