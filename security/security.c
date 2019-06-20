@@ -46,7 +46,9 @@ static struct kmem_cache *lsm_file_cache;
 static struct kmem_cache *lsm_inode_cache;
 
 char *lsm_names;
-static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init;
+static struct lsm_blob_sizes blob_sizes __lsm_ro_after_init = {
+	.lbs_task = sizeof(int),	/* slot number for the "display" LSM */
+};
 
 /* Boot-time LSM user choice */
 static __initdata const char *chosen_lsm_order;
@@ -583,6 +585,8 @@ int lsm_inode_alloc(struct inode *inode)
  */
 static int lsm_task_alloc(struct task_struct *task)
 {
+	int *display;
+
 	if (blob_sizes.lbs_task == 0) {
 		task->security = NULL;
 		return 0;
@@ -591,6 +595,15 @@ static int lsm_task_alloc(struct task_struct *task)
 	task->security = kzalloc(blob_sizes.lbs_task, GFP_KERNEL);
 	if (task->security == NULL)
 		return -ENOMEM;
+
+	/*
+	 * The start of the task blob contains the "display" LSM slot number.
+	 * Start with it set to the invalid slot number, indicating that the
+	 * default first registered LSM be displayed.
+	 */
+	display = task->security;
+	*display = LSMBLOB_INVALID;
+
 	return 0;
 }
 
@@ -1579,14 +1592,24 @@ int security_file_open(struct file *file)
 
 int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
 {
+	int *odisplay = current->security;
+	int *ndisplay;
 	int rc = lsm_task_alloc(task);
 
-	if (rc)
-		return rc;
-	rc = call_int_hook(task_alloc, 0, task, clone_flags);
 	if (unlikely(rc))
+		return rc;
+
+	rc = call_int_hook(task_alloc, 0, task, clone_flags);
+	if (unlikely(rc)) {
 		security_task_free(task);
-	return rc;
+		return rc;
+	}
+
+	ndisplay = task->security;
+	if (ndisplay && odisplay)
+		*ndisplay = *odisplay;
+
+	return 0;
 }
 
 void security_task_free(struct task_struct *task)
@@ -1972,9 +1995,27 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 				char **value)
 {
 	struct security_hook_list *hp;
+	int *display = current->security;
+
+	if (!strcmp(name, "display")) {
+		hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx,
+				     list) {
+			if (*display == LSMBLOB_INVALID ||
+			    hp->slot == *display) {
+				*value = kstrdup(hp->lsm, GFP_KERNEL);
+				if (*value)
+					return strlen(hp->lsm);
+				return -ENOMEM;
+			}
+		}
+		return -EINVAL;
+	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.getprocattr, list) {
 		if (lsm != NULL && strcmp(lsm, hp->lsm))
+			continue;
+		if (lsm == NULL && *display != LSMBLOB_INVALID &&
+		    *display != hp->slot)
 			continue;
 		return hp->hook.getprocattr(p, name, value);
 	}
@@ -1985,9 +2026,26 @@ int security_setprocattr(const char *lsm, const char *name, void *value,
 			 size_t size)
 {
 	struct security_hook_list *hp;
+	int *display = current->security;
+	int len;
+
+	if (!strcmp(name, "display")) {
+		hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx,
+				     list) {
+			len = strlen(hp->lsm);
+			if (size >= len && !strncmp(value, hp->lsm, len)) {
+				*display = hp->slot;
+				return size;
+			}
+		}
+		return -EINVAL;
+	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.setprocattr, list) {
 		if (lsm != NULL && strcmp(lsm, hp->lsm))
+			continue;
+		if (lsm == NULL && *display != LSMBLOB_INVALID &&
+		    *display != hp->slot)
 			continue;
 		return hp->hook.setprocattr(name, value, size);
 	}
@@ -2008,14 +2066,12 @@ EXPORT_SYMBOL(security_ismaclabel);
 int security_secid_to_secctx(struct lsmblob *blob, char **secdata, u32 *seclen)
 {
 	struct security_hook_list *hp;
-	int rc;
+	int *display = current->security;
 
-	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list) {
-		rc = hp->hook.secid_to_secctx(blob->secid[hp->slot],
-					      secdata, seclen);
-		if (rc != 0)
-			return rc;
-	}
+	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list)
+		if (*display == LSMBLOB_INVALID || *display == hp->slot)
+			return hp->hook.secid_to_secctx(blob->secid[hp->slot],
+							secdata, seclen);
 	return 0;
 }
 EXPORT_SYMBOL(security_secid_to_secctx);
@@ -2024,22 +2080,27 @@ int security_secctx_to_secid(const char *secdata, u32 seclen,
 			     struct lsmblob *blob)
 {
 	struct security_hook_list *hp;
-	int rc;
+	int *display = current->security;
 
 	lsmblob_init(blob, 0);
-	hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid, list) {
-		rc = hp->hook.secctx_to_secid(secdata, seclen,
-					      &blob->secid[hp->slot]);
-		if (rc != 0)
-			return rc;
-	}
+	hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid, list)
+		if (*display == LSMBLOB_INVALID || *display == hp->slot)
+			return hp->hook.secctx_to_secid(secdata, seclen,
+							&blob->secid[hp->slot]);
 	return 0;
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
 
 void security_release_secctx(char *secdata, u32 seclen)
 {
-	call_void_hook(release_secctx, secdata, seclen);
+	struct security_hook_list *hp;
+	int *display = current->security;
+
+	hlist_for_each_entry(hp, &security_hook_heads.release_secctx, list)
+		if (*display == LSMBLOB_INVALID || *display == hp->slot) {
+			hp->hook.release_secctx(secdata, seclen);
+			return;
+		}
 }
 EXPORT_SYMBOL(security_release_secctx);
 
@@ -2164,8 +2225,15 @@ EXPORT_SYMBOL(security_sock_rcv_skb);
 int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				      int __user *optlen, unsigned len)
 {
-	return call_int_hook(socket_getpeersec_stream, -ENOPROTOOPT, sock,
-				optval, optlen, len);
+	int *display = current->security;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.socket_getpeersec_stream,
+			     list)
+		if (*display == LSMBLOB_INVALID || *display == hp->slot)
+			return hp->hook.socket_getpeersec_stream(sock, optval,
+								 optlen, len);
+	return -ENOPROTOOPT;
 }
 
 int security_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb,
