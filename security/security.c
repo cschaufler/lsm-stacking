@@ -459,7 +459,6 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		    hooks[i].head == &security_hook_heads.getprocattr ||
 		    hooks[i].head == &security_hook_heads.setprocattr ||
 		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
-		    hooks[i].head == &security_hook_heads.secid_to_secctx ||
 		    hooks[i].head == &security_hook_heads.release_secctx ||
 		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
 		    hooks[i].head == &security_hook_heads.task_getsecid ||
@@ -2064,15 +2063,17 @@ int security_ismaclabel(const char *name)
 }
 EXPORT_SYMBOL(security_ismaclabel);
 
-int security_secid_to_secctx(struct lsmblob *blob, char **secdata, u32 *seclen)
+int security_secid_to_secctx(struct lsmblob *blob, struct lsmcontext *cp)
 {
 	struct security_hook_list *hp;
 	int *display = current->security;
 
 	hlist_for_each_entry(hp, &security_hook_heads.secid_to_secctx, list)
-		if (*display == LSMBLOB_INVALID || *display == hp->slot)
+		if (*display == LSMBLOB_INVALID || *display == hp->slot) {
+			cp->slot = hp->slot;
 			return hp->hook.secid_to_secctx(blob->secid[hp->slot],
-							secdata, seclen);
+							&cp->context, &cp->len);
+		}
 	return 0;
 }
 EXPORT_SYMBOL(security_secid_to_secctx);
