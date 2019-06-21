@@ -453,6 +453,8 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		 * secid in the lsmblob structure.
 		 */
 		if (hooks[i].head == &security_hook_heads.audit_rule_match ||
+		    hooks[i].head ==
+			&security_hook_heads.dentry_init_security ||
 		    hooks[i].head == &security_hook_heads.kernel_act_as ||
 		    hooks[i].head ==
 			&security_hook_heads.socket_getpeersec_dgram ||
@@ -1040,11 +1042,21 @@ void security_inode_free(struct inode *inode)
 }
 
 int security_dentry_init_security(struct dentry *dentry, int mode,
-					const struct qstr *name, void **ctx,
-					u32 *ctxlen)
+				  const struct qstr *name,
+				  struct lsmcontext *cp)
 {
-	return call_int_hook(dentry_init_security, -EOPNOTSUPP, dentry, mode,
-				name, ctx, ctxlen);
+	int *display = current->security;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.dentry_init_security,
+			     list)
+		if (*display == 0 || *display == hp->slot) {
+			cp->slot = hp->slot;
+			return hp->hook.dentry_init_security(dentry, mode,
+					name, (void **)&cp->context, &cp->len);
+		}
+
+	return -EOPNOTSUPP;
 }
 EXPORT_SYMBOL(security_dentry_init_security);
 
