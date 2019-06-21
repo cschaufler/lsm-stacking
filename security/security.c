@@ -317,6 +317,7 @@ static void __init ordered_lsm_init(void)
 	init_debug("sock blob size       = %d\n", blob_sizes.lbs_sock);
 	init_debug("superblock blob size = %d\n", blob_sizes.lbs_superblock);
 	init_debug("task blob size       = %d\n", blob_sizes.lbs_task);
+	init_debug("lsmblob size         = %lu\n", sizeof(struct lsmblob));
 
 	/*
 	 * Create any kmem_caches needed for blobs
@@ -420,6 +421,11 @@ static int lsm_append(char *new, char **result)
 	return 0;
 }
 
+/*
+ * Current index to use while initializing the lsmblob secid list.
+ */
+static int lsm_slot __initdata;
+
 /**
  * security_add_hooks - Add a modules hooks to the hook lists.
  * @hooks: the hooks to add
@@ -427,15 +433,45 @@ static int lsm_append(char *new, char **result)
  * @lsm: the name of the security module
  *
  * Each LSM has to register its hooks with the infrastructure.
+ * If the LSM is using hooks that export secids allocate a slot
+ * for it in the lsmblob.
  */
 void __init security_add_hooks(struct security_hook_list *hooks, int count,
 				char *lsm)
 {
+	int slot = LSMBLOB_INVALID;
 	int i;
 
 	for (i = 0; i < count; i++) {
 		hooks[i].lsm = lsm;
 		hlist_add_tail_rcu(&hooks[i].list, hooks[i].head);
+		/*
+		 * If this is one of the hooks that uses a secid
+		 * note it so that a slot can in allocated for the
+		 * secid in the lsmblob structure.
+		 */
+		if (hooks[i].head == &security_hook_heads.audit_rule_match ||
+		    hooks[i].head == &security_hook_heads.kernel_act_as ||
+		    hooks[i].head ==
+			&security_hook_heads.socket_getpeersec_dgram ||
+		    hooks[i].head == &security_hook_heads.getprocattr ||
+		    hooks[i].head == &security_hook_heads.setprocattr ||
+		    hooks[i].head == &security_hook_heads.secctx_to_secid ||
+		    hooks[i].head == &security_hook_heads.secid_to_secctx ||
+		    hooks[i].head == &security_hook_heads.ipc_getsecid ||
+		    hooks[i].head == &security_hook_heads.task_getsecid ||
+		    hooks[i].head == &security_hook_heads.inode_getsecid ||
+		    hooks[i].head == &security_hook_heads.cred_getsecid) {
+			if (slot == LSMBLOB_INVALID) {
+				slot = lsm_slot++;
+				if (slot >= LSMBLOB_ENTRIES)
+					panic("%s Too many LSMs registered.\n",
+					      __func__);
+				init_debug("%s assigned lsmblob slot %d\n",
+					hooks[i].lsm, slot);
+			}
+		}
+		hooks[i].slot = slot;
 	}
 	if (lsm_append(lsm, &lsm_names) < 0)
 		panic("%s - Cannot get early memory.\n", __func__);
