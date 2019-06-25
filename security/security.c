@@ -2164,9 +2164,19 @@ int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
 }
 EXPORT_SYMBOL(security_inode_setsecctx);
 
-int security_inode_getsecctx(struct inode *inode, void **ctx, u32 *ctxlen)
+int security_inode_getsecctx(struct inode *inode, struct lsmcontext *cp)
 {
-	return call_int_hook(inode_getsecctx, -EOPNOTSUPP, inode, ctx, ctxlen);
+	int *display = current->security;
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.inode_getsecctx, list)
+		if (*display == LSMBLOB_INVALID ||
+		    *display == hp->lsmid->slot) {
+			cp->slot = hp->lsmid->slot;
+			return hp->hook.inode_getsecctx(inode,
+					(void **)&cp->context, &cp->len);
+		}
+	return -EOPNOTSUPP;
 }
 EXPORT_SYMBOL(security_inode_getsecctx);
 
