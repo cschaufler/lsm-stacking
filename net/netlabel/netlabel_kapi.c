@@ -975,15 +975,14 @@ int netlbl_enabled(void)
  * Attach the correct label to the given socket using the security attributes
  * specified in @secattr.  This function requires exclusive access to @sk,
  * which means it either needs to be in the process of being created or locked.
- * Returns zero on success, -EDESTADDRREQ if the domain is configured to use
- * network address selectors (can't blindly label the socket), and negative
- * values on all other failures.
+ * Returns the labeling type of the domain, or negative values on failures.
  *
  */
 int netlbl_sock_setattr(struct sock *sk,
 			u16 family,
 			const struct netlbl_lsm_secattr *secattr)
 {
+	int rc;
 	int ret_val;
 	struct netlbl_dom_map *dom_entry;
 
@@ -995,17 +994,17 @@ int netlbl_sock_setattr(struct sock *sk,
 	}
 	switch (family) {
 	case AF_INET:
+		ret_val = dom_entry->def.type;
 		switch (dom_entry->def.type) {
 		case NETLBL_NLTYPE_ADDRSELECT:
-			ret_val = -EDESTADDRREQ;
 			break;
 		case NETLBL_NLTYPE_CIPSOV4:
-			ret_val = cipso_v4_sock_setattr(sk,
-							dom_entry->def.cipso,
-							secattr);
+			rc = cipso_v4_sock_setattr(sk, dom_entry->def.cipso,
+						   secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1013,17 +1012,17 @@ int netlbl_sock_setattr(struct sock *sk,
 		break;
 #if IS_ENABLED(CONFIG_IPV6)
 	case AF_INET6:
+		ret_val = dom_entry->def.type;
 		switch (dom_entry->def.type) {
 		case NETLBL_NLTYPE_ADDRSELECT:
-			ret_val = -EDESTADDRREQ;
 			break;
 		case NETLBL_NLTYPE_CALIPSO:
-			ret_val = calipso_sock_setattr(sk,
-						       dom_entry->def.calipso,
-						       secattr);
+			rc = calipso_sock_setattr(sk, dom_entry->def.calipso,
+						  secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1104,14 +1103,16 @@ int netlbl_sock_getattr(struct sock *sk,
  * Description:
  * Attach the correct label to the given connected socket using the security
  * attributes specified in @secattr.  The caller is responsible for ensuring
- * that @sk is locked.  Returns zero on success, negative values on failure.
+ * that @sk is locked.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_conn_setattr(struct sock *sk,
 			struct sockaddr *addr,
 			const struct netlbl_lsm_secattr *secattr)
 {
-	int ret_val;
+	int rc;
+	int ret_val = 0;
 	struct sockaddr_in *addr4;
 #if IS_ENABLED(CONFIG_IPV6)
 	struct sockaddr_in6 *addr6;
@@ -1128,16 +1129,17 @@ int netlbl_conn_setattr(struct sock *sk,
 			ret_val = -ENOENT;
 			goto conn_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CIPSOV4:
-			ret_val = cipso_v4_sock_setattr(sk,
-							entry->cipso, secattr);
+			rc = cipso_v4_sock_setattr(sk, entry->cipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			/* just delete the protocols we support for right now
 			 * but we could remove other protocols if needed */
 			netlbl_sock_delattr(sk);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1152,16 +1154,17 @@ int netlbl_conn_setattr(struct sock *sk,
 			ret_val = -ENOENT;
 			goto conn_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CALIPSO:
-			ret_val = calipso_sock_setattr(sk,
-						       entry->calipso, secattr);
+			rc = calipso_sock_setattr(sk, entry->calipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			/* just delete the protocols we support for right now
 			 * but we could remove other protocols if needed */
 			netlbl_sock_delattr(sk);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1184,12 +1187,14 @@ conn_setattr_return:
  *
  * Description:
  * Attach the correct label to the given socket using the security attributes
- * specified in @secattr.  Returns zero on success, negative values on failure.
+ * specified in @secattr.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_req_setattr(struct request_sock *req,
 		       const struct netlbl_lsm_secattr *secattr)
 {
+	int rc;
 	int ret_val;
 	struct netlbl_dommap_def *entry;
 	struct inet_request_sock *ireq = inet_rsk(req);
@@ -1203,14 +1208,15 @@ int netlbl_req_setattr(struct request_sock *req,
 			ret_val = -ENOENT;
 			goto req_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CIPSOV4:
-			ret_val = cipso_v4_req_setattr(req,
-						       entry->cipso, secattr);
+			rc = cipso_v4_req_setattr(req, entry->cipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			netlbl_req_delattr(req);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1224,14 +1230,15 @@ int netlbl_req_setattr(struct request_sock *req,
 			ret_val = -ENOENT;
 			goto req_setattr_return;
 		}
+		ret_val = entry->type;
 		switch (entry->type) {
 		case NETLBL_NLTYPE_CALIPSO:
-			ret_val = calipso_req_setattr(req,
-						      entry->calipso, secattr);
+			rc = calipso_req_setattr(req, entry->calipso, secattr);
+			if (rc < 0)
+				ret_val = rc;
 			break;
 		case NETLBL_NLTYPE_UNLABELED:
 			netlbl_req_delattr(req);
-			ret_val = 0;
 			break;
 		default:
 			ret_val = -ENOENT;
@@ -1277,7 +1284,8 @@ void netlbl_req_delattr(struct request_sock *req)
  *
  * Description:
  * Attach the correct label to the given packet using the security attributes
- * specified in @secattr.  Returns zero on success, negative values on failure.
+ * specified in @secattr.  Returns the NLTYPE on success, negative values on
+ * failure.
  *
  */
 int netlbl_skbuff_setattr(struct sk_buff *skb,
@@ -1314,6 +1322,8 @@ int netlbl_skbuff_setattr(struct sk_buff *skb,
 		default:
 			ret_val = -ENOENT;
 		}
+		if (ret_val == 0)
+			ret_val = entry->type;
 		break;
 #if IS_ENABLED(CONFIG_IPV6)
 	case AF_INET6:
@@ -1337,6 +1347,8 @@ int netlbl_skbuff_setattr(struct sk_buff *skb,
 		default:
 			ret_val = -ENOENT;
 		}
+		if (ret_val == 0)
+			ret_val = entry->type;
 		break;
 #endif /* IPv6 */
 	default:

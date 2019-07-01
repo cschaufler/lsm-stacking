@@ -2414,6 +2414,8 @@ static int smack_netlabel(struct sock *sk, int labeled)
 	else {
 		skp = ssp->smk_out;
 		rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
+		if (rc > 0)
+			rc = 0;
 	}
 
 	bh_unlock_sock(sk);
@@ -4141,9 +4143,11 @@ access_check:
 	hskp = smack_ipv4host_label(&addr);
 	rcu_read_unlock();
 
-	if (hskp == NULL)
+	if (hskp == NULL) {
 		rc = netlbl_req_setattr(req, &skp->smk_netlabel);
-	else
+		if (rc > 0)
+			rc = 0;
+	} else
 		netlbl_req_delattr(req);
 
 	return rc;

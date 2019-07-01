@@ -266,6 +266,8 @@ int selinux_netlbl_skbuff_setsid(struct sk_buff *skb,
 	}
 
 	rc = netlbl_skbuff_setattr(skb, family, secattr);
+	if (rc > 0)
+		rc = 0;
 
 skbuff_setsid_return:
 	if (secattr == &secattr_storage)
@@ -321,8 +323,10 @@ int selinux_netlbl_sctp_assoc_request(struct sctp_endpoint *ep,
 	}
 
 	rc = netlbl_conn_setattr(ep->base.sk, addr, &secattr);
-	if (rc == 0)
+	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_LABELED;
+		rc = 0;
+	}
 
 assoc_request_return:
 	netlbl_secattr_destroy(&secattr);
@@ -354,6 +358,8 @@ int selinux_netlbl_inet_conn_request(struct request_sock *req, u16 family)
 	if (rc != 0)
 		goto inet_conn_request_return;
 	rc = netlbl_req_setattr(req, &secattr);
+	if (rc > 0)
+		rc = 0;
 inet_conn_request_return:
 	netlbl_secattr_destroy(&secattr);
 	return rc;
@@ -418,15 +424,12 @@ int selinux_netlbl_socket_post_create(struct sock *sk, u16 family)
 	if (secattr == NULL)
 		return -ENOMEM;
 	rc = netlbl_sock_setattr(sk, family, secattr);
-	switch (rc) {
-	case 0:
-		sksec->nlbl_state = NLBL_LABELED;
-		break;
-	case -EDESTADDRREQ:
+	if (rc == NETLBL_NLTYPE_ADDRSELECT)
 		sksec->nlbl_state = NLBL_REQSKB;
+	else if (rc >= 0)
+		sksec->nlbl_state = NLBL_LABELED;
+	if (rc > 0)
 		rc = 0;
-		break;
-	}
 
 	return rc;
 }
@@ -579,8 +582,10 @@ static int selinux_netlbl_socket_connect_helper(struct sock *sk,
 		return rc;
 	}
 	rc = netlbl_conn_setattr(sk, addr, secattr);
-	if (rc == 0)
+	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_CONNLABELED;
+		rc = 0;
+	}
 
 	return rc;
 }
