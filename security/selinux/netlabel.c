@@ -185,6 +185,7 @@ void selinux_netlbl_sk_security_free(struct sk_security_struct *sksec)
 void selinux_netlbl_sk_security_reset(struct sk_security_struct *sksec)
 {
 	sksec->nlbl_state = NLBL_UNSET;
+	sksec->nlbl_set = NETLBL_NLTYPE_NONE;
 }
 
 /**
@@ -244,14 +245,14 @@ int selinux_netlbl_skbuff_setsid(struct sk_buff *skb,
 	int rc;
 	struct netlbl_lsm_secattr secattr_storage;
 	struct netlbl_lsm_secattr *secattr = NULL;
+	struct sk_security_struct *sksec;
 	struct sock *sk;
 
 	/* if this is a locally generated packet check to see if it is already
 	 * being labeled by it's parent socket, if it is just exit */
 	sk = skb_to_full_sk(skb);
 	if (sk != NULL) {
-		struct sk_security_struct *sksec = selinux_sock(sk);
-
+		sksec = selinux_sock(sk);
 		if (sksec->nlbl_state != NLBL_REQSKB)
 			return 0;
 		secattr = selinux_netlbl_sock_getattr(sk, sid);
@@ -266,8 +267,11 @@ int selinux_netlbl_skbuff_setsid(struct sk_buff *skb,
 	}
 
 	rc = netlbl_skbuff_setattr(skb, family, secattr);
-	if (rc > 0)
+	if (rc >= 0) {
+		if (sk != NULL)
+			sksec->nlbl_set = rc;
 		rc = 0;
+	}
 
 skbuff_setsid_return:
 	if (secattr == &secattr_storage)
@@ -325,6 +329,7 @@ int selinux_netlbl_sctp_assoc_request(struct sctp_endpoint *ep,
 	rc = netlbl_conn_setattr(ep->base.sk, addr, &secattr);
 	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_LABELED;
+		sksec->nlbl_set = rc;
 		rc = 0;
 	}
 
@@ -428,8 +433,10 @@ int selinux_netlbl_socket_post_create(struct sock *sk, u16 family)
 		sksec->nlbl_state = NLBL_REQSKB;
 	else if (rc >= 0)
 		sksec->nlbl_state = NLBL_LABELED;
-	if (rc > 0)
+	if (rc >= 0) {
+		sksec->nlbl_set = rc;
 		rc = 0;
+	}
 
 	return rc;
 }
@@ -573,8 +580,8 @@ static int selinux_netlbl_socket_connect_helper(struct sock *sk,
 	if (addr->sa_family == AF_UNSPEC) {
 		netlbl_sock_delattr(sk);
 		sksec->nlbl_state = NLBL_REQSKB;
-		rc = 0;
-		return rc;
+		sksec->nlbl_set = NETLBL_NLTYPE_ADDRSELECT;
+		return 0;
 	}
 	secattr = selinux_netlbl_sock_genattr(sk);
 	if (secattr == NULL) {
@@ -584,6 +591,7 @@ static int selinux_netlbl_socket_connect_helper(struct sock *sk,
 	rc = netlbl_conn_setattr(sk, addr, secattr);
 	if (rc >= 0) {
 		sksec->nlbl_state = NLBL_CONNLABELED;
+		sksec->nlbl_set = rc;
 		rc = 0;
 	}
 

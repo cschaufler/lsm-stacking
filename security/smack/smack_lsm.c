@@ -2409,13 +2409,16 @@ static int smack_netlabel(struct sock *sk, int labeled)
 	bh_lock_sock_nested(sk);
 
 	if (ssp->smk_out == smack_net_ambient ||
-	    labeled == SMACK_UNLABELED_SOCKET)
+	    labeled == SMACK_UNLABELED_SOCKET) {
 		netlbl_sock_delattr(sk);
-	else {
+		ssp->smk_set = NETLBL_NLTYPE_UNLABELED;
+	} else {
 		skp = ssp->smk_out;
 		rc = netlbl_sock_setattr(sk, sk->sk_family, &skp->smk_netlabel);
-		if (rc > 0)
+		if (rc >= 0) {
 			rc = 0;
+			ssp->smk_set = rc;
+		}
 	}
 
 	bh_unlock_sock(sk);
@@ -4145,10 +4148,14 @@ access_check:
 
 	if (hskp == NULL) {
 		rc = netlbl_req_setattr(req, &skp->smk_netlabel);
-		if (rc > 0)
+		if (rc >= 0) {
+			ssp->smk_set = rc;
 			rc = 0;
-	} else
+		}
+	} else {
 		netlbl_req_delattr(req);
+		rc = NETLBL_NLTYPE_UNLABELED;
+	}
 
 	return rc;
 }
