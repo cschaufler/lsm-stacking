@@ -5522,6 +5522,9 @@ static unsigned int selinux_ip_output(struct sk_buff *skb,
 	if (selinux_netlbl_skbuff_setsid(skb, family, sid) != 0)
 		return NF_DROP;
 
+	if (sk && security_reconcile_netlbl(sk))
+		return NF_DROP;
+
 	return NF_ACCEPT;
 }
 
