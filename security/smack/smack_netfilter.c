@@ -75,7 +75,7 @@ static unsigned int smack_ipv4_output(void *priv,
 					const struct nf_hook_state *state)
 {
 	struct sock *sk = skb_to_full_sk(skb);
-	struct socket_smack *ssp;
+	struct socket_smack *ssp = NULL;
 	struct smack_known *skp;
 
 	if (!smack_checked_secmark) {
@@ -84,11 +84,15 @@ static unsigned int smack_ipv4_output(void *priv,
 		smack_checked_secmark = true;
 	}
 
-	if (smack_use_secmark && sk && smack_sock(sk)) {
+	if (sk && smack_sock(sk))
 		ssp = smack_sock(sk);
+
+	if (smack_use_secmark && ssp) {
 		skp = ssp->smk_out;
 		skb->secmark = skp->smk_secid;
 	}
+	if (sk && security_reconcile_netlbl(sk))
+		return NF_DROP;
 
 	return NF_ACCEPT;
 }
