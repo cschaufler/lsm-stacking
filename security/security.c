@@ -2135,17 +2135,23 @@ int security_secctx_to_secid(const char *secdata, u32 seclen,
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
 
-void security_release_secctx(char *secdata, u32 seclen)
+void security_release_secctx(struct lsmcontext *cp)
 {
 	struct security_hook_list *hp;
-	int *display = current->security;
+	bool found = false;
 
 	hlist_for_each_entry(hp, &security_hook_heads.release_secctx, list)
-		if (display == NULL || *display == LSMBLOB_INVALID ||
-		    *display == hp->lsmid->slot) {
-			hp->hook.release_secctx(secdata, seclen);
-			return;
+		if (cp->slot == hp->lsmid->slot) {
+			hp->hook.release_secctx(cp->context, cp->len);
+			found = true;
+			break;
 		}
+
+	memset(cp, 0, sizeof(*cp));
+
+	if (!found)
+		pr_warn("%s context \"%s\" from slot %d not released\n",
+			__func__, cp->context, cp->slot);
 }
 EXPORT_SYMBOL(security_release_secctx);
 
