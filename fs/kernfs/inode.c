@@ -349,6 +349,7 @@ static int kernfs_security_xattr_set(const struct xattr_handler *handler,
 {
 	struct kernfs_node *kn = inode->i_private;
 	struct kernfs_iattrs *attrs;
+	struct lsmcontext context;
 	void *secdata;
 	u32 secdata_len = 0;
 	int error;
@@ -368,8 +369,10 @@ static int kernfs_security_xattr_set(const struct xattr_handler *handler,
 	error = kernfs_node_setsecdata(attrs, &secdata, &secdata_len);
 	mutex_unlock(&kernfs_mutex);
 
-	if (secdata)
-		security_release_secctx(secdata, secdata_len);
+	if (secdata) {
+		lsmcontext_init(&context, secdata, secdata_len, 0);
+		security_release_secctx(&context);
+	}
 	return error;
 }
 
