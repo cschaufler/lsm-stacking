@@ -321,6 +321,22 @@ static const struct file_operations lsm_ops = {
 	.read = lsm_read,
 	.llseek = generic_file_llseek,
 };
+
+static struct dentry *lsm_display_default_dentry;
+static ssize_t lsm_display_default_read(struct file *filp, char __user *buf,
+					size_t count, loff_t *ppos)
+{
+	const char *name = security_lsm_slot_name(0);
+
+	if (name == NULL)
+		return 0;
+	return simple_read_from_buffer(buf, count, ppos, name, strlen(name));
+}
+
+static const struct file_operations lsm_display_default_ops = {
+	.read = lsm_display_default_read,
+	.llseek = generic_file_llseek,
+};
 #endif
 
 static int __init securityfs_init(void)
@@ -337,8 +353,10 @@ static int __init securityfs_init(void)
 		return retval;
 	}
 #ifdef CONFIG_SECURITY
-	lsm_dentry = securityfs_create_file("lsm", 0444, NULL, NULL,
-						&lsm_ops);
+	lsm_dentry = securityfs_create_file("lsm", 0444, NULL, NULL, &lsm_ops);
+	lsm_display_default_dentry = securityfs_create_file(
+					"lsm_display_default", 0444, NULL,
+					NULL, &lsm_display_default_ops);
 #endif
 	return 0;
 }
