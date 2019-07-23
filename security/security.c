@@ -2057,6 +2057,11 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 				char **value)
 {
 	struct security_hook_list *hp;
+	char *final = NULL;
+	char *cp;
+	char *tp;
+	int rc = 0;
+	
 	int display = lsm_task_display(current);
 	int slot = 0;
 
@@ -2072,6 +2077,35 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 		if (*value)
 			return strlen(*value);
 		return -ENOMEM;
+	}
+
+	if (!strcmp(name, "context")) {
+		hlist_for_each_entry(hp, &security_hook_heads.getprocattr,
+				     list) {
+			rc = hp->hook.getprocattr(p, "current", &cp);
+			if (rc < 0) {
+				kfree(final);
+				return rc;
+			}
+			tp = strchr(cp, '\n');
+			if (tp != NULL)
+				*tp = '\0';
+			if (final) {
+				tp = kasprintf(GFP_KERNEL, "%s,%s='%s'", final,
+					       hp->lsmid->lsm, cp);
+				kfree(final);
+			} else
+				tp = kasprintf(GFP_KERNEL, "%s='%s'",
+					       hp->lsmid->lsm, cp);
+			kfree(cp);
+			if (tp == NULL)
+				return -ENOMEM;
+			final = tp;
+		}
+		if (final == NULL)
+			return -EINVAL;
+		*value = final;
+		return strlen(final);
 	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.getprocattr, list) {
