@@ -2061,6 +2061,10 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 	char *cp;
 	char *tp;
 	int rc = 0;
+	int finallen = 0;
+	int llen;
+	int clen;
+	int tlen;
 	
 	int display = lsm_task_display(current);
 	int slot = 0;
@@ -2083,29 +2087,37 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 		hlist_for_each_entry(hp, &security_hook_heads.getprocattr,
 				     list) {
 			rc = hp->hook.getprocattr(p, "current", &cp);
+			if (rc == -EINVAL || rc == -ENOPROTOOPT)
+				continue;
 			if (rc < 0) {
 				kfree(final);
 				return rc;
 			}
-			tp = strchr(cp, '\n');
-			if (tp != NULL)
-				*tp = '\0';
-			if (final) {
-				tp = kasprintf(GFP_KERNEL, "%s,%s='%s'", final,
-					       hp->lsmid->lsm, cp);
+			llen = strlen(hp->lsmid->lsm) + 1;
+			clen = strlen(cp) + 1;
+			tlen = llen + clen;
+			if (final)
+				tlen += finallen;
+			tp = kzalloc(tlen, GFP_KERNEL);
+			if (tp == NULL) {
+				kfree(cp);
 				kfree(final);
-			} else
-				tp = kasprintf(GFP_KERNEL, "%s='%s'",
-					       hp->lsmid->lsm, cp);
-			kfree(cp);
-			if (tp == NULL)
 				return -ENOMEM;
+			}
+			if (final)
+				memcpy(tp, final, finallen);
+			memcpy(tp + finallen, hp->lsmid->lsm, llen);
+			memcpy(tp + finallen + llen, cp, clen);
+			kfree(cp);
+			if (final)
+				kfree(final);
 			final = tp;
+			finallen = tlen;
 		}
 		if (final == NULL)
 			return -EINVAL;
 		*value = final;
-		return strlen(final);
+		return finallen;
 	}
 
 	hlist_for_each_entry(hp, &security_hook_heads.getprocattr, list) {
@@ -2389,11 +2401,14 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				      int display)
 {
 	struct security_hook_list *hp;
-	unsigned l = 0;
 	char *final = NULL;
 	char *cp;
 	char *tp;
 	int rc = 0;
+	unsigned finallen = 0;
+	unsigned llen;
+	unsigned clen = 0;
+	unsigned tlen;
 
 	switch (display) {
 	case LSMBLOB_DISPLAY:
@@ -2405,7 +2420,7 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 			if (display == LSMBLOB_INVALID ||
 			    display == hp->lsmid->slot) {
 				rc = hp->hook.socket_getpeersec_stream(sock,
-							&final, &l, len);
+							&final, &finallen, len);
 				break;
 			}
 		break;
@@ -2416,36 +2431,49 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 		hlist_for_each_entry(hp,
 				&security_hook_heads.socket_getpeersec_stream,
 				list) {
-			rc = hp->hook.socket_getpeersec_stream(sock, &cp, &l,
+			rc = hp->hook.socket_getpeersec_stream(sock, &cp, &clen,
 							       len);
+			if (rc == -EINVAL || rc == -ENOPROTOOPT) {
+				rc = 0;
+				continue;
+			}
 			if (rc) {
 				kfree(final);
 				return rc;
 			}
-			if (final) {
-				tp = kasprintf(GFP_KERNEL, "%s,%s='%s'", final,
-					       hp->lsmid->lsm, cp);
+			llen = strlen(hp->lsmid->lsm) + 1;
+			tlen = llen + clen + 1;
+			if (final)
+				tlen += finallen;
+			tp = kzalloc(tlen, GFP_KERNEL);
+			if (tp == NULL) {
+				kfree(cp);
 				kfree(final);
-			} else
-				tp = kasprintf(GFP_KERNEL, "%s='%s'",
-					       hp->lsmid->lsm, cp);
-			kfree(cp);
-			if (tp == NULL)
 				return -ENOMEM;
+			}
+			if (final)
+				memcpy(tp, final, finallen);
+			memcpy(tp + finallen, hp->lsmid->lsm, llen);
+			memcpy(tp + finallen + llen, cp, clen);
+			kfree(cp);
+			if (final)
+				kfree(final);
 			final = tp;
+			finallen = tlen;
 		}
-		l = strlen(final);
+		if (final == NULL)
+			return -EINVAL;
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	if (l > len)
+	if (finallen > len)
 		rc = -ERANGE;
-	else if (copy_to_user(optval, final, l))
+	else if (copy_to_user(optval, final, finallen))
 		rc = -EFAULT;
 
-	if (put_user(l, optlen))
+	if (put_user(finallen, optlen))
 		rc = -EFAULT;
 
 	kfree(final);
