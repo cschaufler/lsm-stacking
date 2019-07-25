@@ -2441,8 +2441,12 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				kfree(final);
 				return rc;
 			}
+			/*
+			 * Don't propogate trailing nul bytes.
+			 */
+			clen = strnlen(cp, clen) + 1;
 			llen = strlen(hp->lsmid->lsm) + 1;
-			tlen = llen + clen + 1;
+			tlen = llen + clen;
 			if (final)
 				tlen += finallen;
 			tp = kzalloc(tlen, GFP_KERNEL);
