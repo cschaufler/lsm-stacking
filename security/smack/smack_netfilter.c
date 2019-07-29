@@ -21,6 +21,29 @@
 #include <net/net_namespace.h>
 #include "smack.h"
 
+bool smack_use_secmark;
+static bool smack_checked_secmark;
+
+/**
+ * smack_secmark_refcount_inc - Seize the secmark
+ *
+ * Note to the rest of the Smack code that secmarks may be used.
+ */
+void smack_secmark_refcount_inc(void)
+{
+        smack_use_secmark = true;
+	pr_info("Smack: Using network secmarks.\n");
+}
+
+/**
+ * smack_secmark_refcount_dec - Do nothing about the secmark
+ *
+ * Matches the incrementing function, but does nothing.
+ */
+void smack_secmark_refcount_dec(void)
+{
+}
+
 #if IS_ENABLED(CONFIG_IPV6)
 
 static unsigned int smack_ipv6_output(void *priv,
@@ -31,7 +54,13 @@ static unsigned int smack_ipv6_output(void *priv,
 	struct socket_smack *ssp;
 	struct smack_known *skp;
 
-	if (sk && smack_sock(sk)) {
+	if (!smack_checked_secmark) {
+		security_secmark_refcount_inc();
+		security_secmark_refcount_dec();
+		smack_checked_secmark = true;
+	}
+
+	if (smack_use_secmark && sk && smack_sock(sk)) {
 		ssp = smack_sock(sk);
 		skp = ssp->smk_out;
 		skb->secmark = skp->smk_secid;
@@ -49,7 +78,13 @@ static unsigned int smack_ipv4_output(void *priv,
 	struct socket_smack *ssp;
 	struct smack_known *skp;
 
-	if (sk && smack_sock(sk)) {
+	if (!smack_checked_secmark) {
+		security_secmark_refcount_inc();
+		security_secmark_refcount_dec();
+		smack_checked_secmark = true;
+	}
+
+	if (smack_use_secmark && sk && smack_sock(sk)) {
 		ssp = smack_sock(sk);
 		skp = ssp->smk_out;
 		skb->secmark = skp->smk_secid;
