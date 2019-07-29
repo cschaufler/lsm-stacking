@@ -2564,13 +2564,25 @@ EXPORT_SYMBOL(security_secmark_relabel_packet);
 
 void security_secmark_refcount_inc(void)
 {
-	call_void_hook(secmark_refcount_inc);
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.secmark_refcount_inc,
+			     list) {
+		hp->hook.secmark_refcount_inc();
+		break;
+	}
 }
 EXPORT_SYMBOL(security_secmark_refcount_inc);
 
 void security_secmark_refcount_dec(void)
 {
-	call_void_hook(secmark_refcount_dec);
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.secmark_refcount_dec,
+			     list) {
+		hp->hook.secmark_refcount_dec();
+		break;
+	}
 }
 EXPORT_SYMBOL(security_secmark_refcount_dec);
 
