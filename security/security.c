@@ -2212,7 +2212,12 @@ int security_netlink_send(struct sock *sk, struct sk_buff *skb)
 
 int security_ismaclabel(const char *name)
 {
-	return call_int_hook(ismaclabel, 0, name);
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.ismaclabel, list)
+		if (hp->hook.ismaclabel(name) != 0)
+			return 1;
+	return 0;
 }
 EXPORT_SYMBOL(security_ismaclabel);
 
