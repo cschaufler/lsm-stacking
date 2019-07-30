@@ -1475,9 +1475,34 @@ int security_inode_setsecurity(struct inode *inode, const char *name, const void
 
 int security_inode_listsecurity(struct inode *inode, char *buffer, size_t buffer_size)
 {
+	struct security_hook_list *hp;
+	bool first = true;
+	int finallen = 0;
+	int len;
+
 	if (unlikely(IS_PRIVATE(inode)))
 		return 0;
-	return call_int_hook(inode_listsecurity, 0, inode, buffer, buffer_size);
+
+	hlist_for_each_entry(hp, &security_hook_heads.inode_listsecurity,
+			     list) {
+		len = hp->hook.inode_listsecurity(inode, buffer, buffer_size);
+		if (len < buffer_size) {
+			if (buffer)
+				buffer[len] = '\0';
+			buffer_size -= len + 1;
+		} else {
+			buffer = NULL;
+			buffer_size = 0;
+		}
+		if (first) {
+			finallen = len;
+			first = false;
+		} else
+			finallen += len + 1;
+		if (buffer)
+			buffer += len + 1;
+	}
+	return finallen;
 }
 EXPORT_SYMBOL(security_inode_listsecurity);
 
