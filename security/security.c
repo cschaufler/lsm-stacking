@@ -743,6 +743,42 @@ static int lsm_superblock_alloc(struct super_block *sb)
 	return 0;
 }
 
+/**
+ * append_ctx - append a lsm/context pair to a compound context
+ * @ctx: the existing compound context
+ * @ctxlen: size of the old context, including terminating nul byte
+ * @lsm: new lsm name, nul terminated
+ * @new: new context, possibly nul terminated
+ * @newlen: maximum size of @new
+ *
+ * replace @ctx with a new compound context, appending @newlsm and @new
+ * to @ctx. On exit the new data replaces the old, which is freed.
+ * @ctxlen is set to the new size, which includes a trailing nul byte.
+ *
+ * Returns 0 on success, -ENOMEM if no memory is available.
+ */
+static int append_ctx(char **ctx, int *ctxlen, const char *lsm, char *new,
+		      int newlen)
+{
+	char *final;
+	int llen;
+
+	llen = strlen(lsm) + 1;
+	newlen = strnlen(new, newlen) + 1;
+
+	final = kzalloc(*ctxlen + llen + newlen, GFP_KERNEL);
+	if (final == NULL)
+		return -ENOMEM;
+	if (*ctxlen)
+		memcpy(final, *ctx, *ctxlen);
+	memcpy(final + *ctxlen, lsm, llen);
+	memcpy(final + *ctxlen + llen, new, newlen);
+	kfree(*ctx);
+	*ctx = final;
+	*ctxlen = *ctxlen + llen + newlen;
+	return 0;
+}
+
 /*
  * Hook list operation macros.
  *
@@ -2094,12 +2130,8 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 	struct security_hook_list *hp;
 	char *final = NULL;
 	char *cp;
-	char *tp;
 	int rc = 0;
 	int finallen = 0;
-	int llen;
-	int clen;
-	int tlen;
 	int display = lsm_task_display(current);
 	int slot = 0;
 
@@ -2127,26 +2159,11 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 				kfree(final);
 				return rc;
 			}
-			llen = strlen(hp->lsmid->lsm) + 1;
-			clen = strlen(cp) + 1;
-			tlen = llen + clen;
-			if (final)
-				tlen += finallen;
-			tp = kzalloc(tlen, GFP_KERNEL);
-			if (tp == NULL) {
-				kfree(cp);
+			rc = append_ctx(&final, &finallen, lsm, cp, strlen(cp));
+			if (rc < 0) {
 				kfree(final);
-				return -ENOMEM;
+				return rc;
 			}
-			if (final)
-				memcpy(tp, final, finallen);
-			memcpy(tp + finallen, hp->lsmid->lsm, llen);
-			memcpy(tp + finallen + llen, cp, clen);
-			kfree(cp);
-			if (final)
-				kfree(final);
-			final = tp;
-			finallen = tlen;
 		}
 		if (final == NULL)
 			return -EINVAL;
@@ -2219,13 +2236,22 @@ int security_netlink_send(struct sock *sk, struct sk_buff *skb)
 	return call_int_hook(netlink_send, 0, sk, skb);
 }
 
+/**
+ * security_ismaclabel - Does @name identify a MAC attribute
+ * @name: attribute name in question
+ *
+ * If @name is the name of a Mandatory Access Control (MAC) attribute
+ * that the first module on the list recognizes return 1. Don't look
+ * beyond the first module, as this is only used by NFS and NFS can't
+ * differentiate which module to use.
+ */
 int security_ismaclabel(const char *name)
 {
 	struct security_hook_list *hp;
 
 	hlist_for_each_entry(hp, &security_hook_heads.ismaclabel, list)
-		if (hp->hook.ismaclabel(name) != 0)
-			return 1;
+		return hp->hook.ismaclabel(name);
+
 	return 0;
 }
 EXPORT_SYMBOL(security_ismaclabel);
@@ -2293,6 +2319,15 @@ void security_release_secctx(struct lsmcontext *cp)
 	struct security_hook_list *hp;
 	bool found = false;
 
+	if (cp->slot == LSMBLOB_INVALID)
+		return;
+
+	if (cp->slot == LSMBLOB_COMPOUND) {
+		kfree(cp->context);
+		found = true;
+		goto clear_out;
+	}
+
 	hlist_for_each_entry(hp, &security_hook_heads.release_secctx, list)
 		if (cp->slot == hp->lsmid->slot) {
 			hp->hook.release_secctx(cp->context, cp->len);
@@ -2300,6 +2335,7 @@ void security_release_secctx(struct lsmcontext *cp)
 			break;
 		}
 
+clear_out:
 	memset(cp, 0, sizeof(*cp));
 
 	if (!found)
@@ -2314,30 +2350,82 @@ void security_inode_invalidate_secctx(struct inode *inode)
 }
 EXPORT_SYMBOL(security_inode_invalidate_secctx);
 
-int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen)
+int security_inode_notifysecctx(struct inode *inode, struct lsmcontext *cp)
 {
-	return call_int_hook(inode_notifysecctx, 0, inode, ctx, ctxlen);
+	struct security_hook_list *hp;
+	char *raw = cp->context;
+	char *ctx;
+	int llen;
+	int clen;
+	int rc;
+
+	if (cp->slot == LSMBLOB_COMPOUND) {
+		hlist_for_each_entry(hp,
+		    &security_hook_heads.inode_notifysecctx, list) {
+			llen = strlen(raw) + 1;
+			ctx = raw + llen;
+			clen = strlen(ctx) + 1;
+			if (!strcmp(hp->lsmid->lsm, raw)) {
+				rc = hp->hook.inode_notifysecctx(inode, ctx,
+								 clen);
+				if (WARN_ON(rc != 0))
+					return rc;
+			}
+			raw = ctx + clen;
+		}
+		return 0;
+	}
+
+	hlist_for_each_entry(hp, &security_hook_heads.inode_notifysecctx, list)
+		if (cp->slot == LSMBLOB_FIRST || cp->slot == hp->lsmid->slot)
+			return hp->hook.inode_notifysecctx(inode, cp->context,
+							   cp->len);
+	return 0;
 }
 EXPORT_SYMBOL(security_inode_notifysecctx);
 
-int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
+int security_inode_setsecctx(struct dentry *dentry, struct lsmcontext *cp)
 {
-	return call_int_hook(inode_setsecctx, 0, dentry, ctx, ctxlen);
+	struct security_hook_list *hp;
+
+	if (WARN_ON(cp->slot != LSMBLOB_FIRST))
+		return -EINVAL;
+
+	hlist_for_each_entry(hp, &security_hook_heads.inode_setsecctx, list)
+		return hp->hook.inode_setsecctx(dentry, cp->context, cp->len);
+	return 0;
 }
 EXPORT_SYMBOL(security_inode_setsecctx);
 
 int security_inode_getsecctx(struct inode *inode, struct lsmcontext *cp)
 {
 	struct security_hook_list *hp;
+	char *finalctx = NULL;
+	int rc = -EOPNOTSUPP;
+	int finallen = 0;
 
 	memset(cp, 0, sizeof(*cp));
 
 	hlist_for_each_entry(hp, &security_hook_heads.inode_getsecctx, list) {
+		rc = hp->hook.inode_getsecctx(inode, (void **)&cp->context,
+					      &cp->len);
+		if (rc) {
+			kfree(finalctx);
+			return rc;
+		}
 		cp->slot = hp->lsmid->slot;
-		return hp->hook.inode_getsecctx(inode, (void **)&cp->context,
-						&cp->len);
+		rc = append_ctx(&finalctx, &finallen, hp->lsmid->lsm,
+				cp->context, cp->len);
+		security_release_secctx(cp);
+		if (rc) {
+			kfree(finalctx);
+			return rc;
+		}
 	}
-	return -EOPNOTSUPP;
+	cp->slot = LSMBLOB_COMPOUND;
+	cp->context = finalctx;
+	cp->len = finallen;
+	return 0;
 }
 EXPORT_SYMBOL(security_inode_getsecctx);
 
@@ -2442,12 +2530,9 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 	struct security_hook_list *hp;
 	char *final = NULL;
 	char *cp;
-	char *tp;
 	int rc = 0;
 	unsigned finallen = 0;
-	unsigned llen;
 	unsigned clen = 0;
-	unsigned tlen;
 
 	switch (display) {
 	case LSMBLOB_DISPLAY:
@@ -2465,7 +2550,7 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 		break;
 	case LSMBLOB_COMPOUND:
 		/*
-		 * A compound context, in the form lsm='value'[,lsm='value']...
+		 * A compound context, in the form [lsm\0value\0]...
 		 */
 		hlist_for_each_entry(hp,
 				&security_hook_heads.socket_getpeersec_stream,
@@ -2480,29 +2565,8 @@ int security_socket_getpeersec_stream(struct socket *sock, char __user *optval,
 				kfree(final);
 				return rc;
 			}
-			/*
-			 * Don't propogate trailing nul bytes.
-			 */
-			clen = strnlen(cp, clen) + 1;
-			llen = strlen(hp->lsmid->lsm) + 1;
-			tlen = llen + clen;
-			if (final)
-				tlen += finallen;
-			tp = kzalloc(tlen, GFP_KERNEL);
-			if (tp == NULL) {
-				kfree(cp);
-				kfree(final);
-				return -ENOMEM;
-			}
-			if (final)
-				memcpy(tp, final, finallen);
-			memcpy(tp + finallen, hp->lsmid->lsm, llen);
-			memcpy(tp + finallen + llen, cp, clen);
-			kfree(cp);
-			if (final)
-				kfree(final);
-			final = tp;
-			finallen = tlen;
+			rc = append_ctx(&final, &finallen, hp->lsmid->lsm,
+					cp, clen);
 		}
 		if (final == NULL)
 			return -EINVAL;
