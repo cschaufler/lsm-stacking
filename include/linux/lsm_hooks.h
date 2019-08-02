@@ -881,7 +881,6 @@
  *	@sock contains the peer socket. May be NULL.
  *	@skb is the sk_buff for the packet being queried. May be NULL.
  *	@secid pointer to store the secid of the packet.
- *	Return 0 on success, error on failure.
  * @sk_alloc_security:
  *	Allocate and attach a security structure to the sk->sk_security field,
  *	which is used to copy security attributes between local stream sockets.
@@ -1699,7 +1698,7 @@ union security_list_options {
 	int (*socket_sock_rcv_skb)(struct sock *sk, struct sk_buff *skb);
 	int (*socket_getpeersec_stream)(struct socket *sock, char **optval,
 					int *optlen, unsigned len);
-	int (*socket_getpeersec_dgram)(struct socket *sock,
+	void (*socket_getpeersec_dgram)(struct socket *sock,
 					struct sk_buff *skb, u32 *secid);
 	int (*sk_alloc_security)(struct sock *sk, int family, gfp_t priority);
 	void (*sk_free_security)(struct sock *sk);

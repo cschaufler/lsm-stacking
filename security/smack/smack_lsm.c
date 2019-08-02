@@ -3970,8 +3970,8 @@ static int smack_socket_getpeersec_stream(struct socket *sock, char **optval,
  *
  * Sets the netlabel socket state on sk from parent
  */
-static int smack_socket_getpeersec_dgram(struct socket *sock,
-					 struct sk_buff *skb, u32 *secid)
+static void smack_socket_getpeersec_dgram(struct socket *sock,
+					  struct sk_buff *skb, u32 *secid)
 
 {
 	struct netlbl_lsm_secattr secattr;
@@ -4025,9 +4025,7 @@ static int smack_socket_getpeersec_dgram(struct socket *sock,
 		break;
 	}
 	*secid = s;
-	if (s == 0)
-		return -EINVAL;
-	return 0;
+	return;
 }
 
 /**
@@ -4426,7 +4424,12 @@ static int smack_ismaclabel(const char *name)
  */
 static int smack_secid_to_secctx(u32 secid, char **secdata, u32 *seclen)
 {
-	struct smack_known *skp = smack_from_secid(secid);
+	struct smack_known *skp;
+
+	if (secid == 0)
+		return -EINVAL;
+
+	skp = smack_from_secid(secid);
 
 	if (secdata)
 		*secdata = skp->smk_known;
