@@ -183,6 +183,7 @@ static void __init lsm_set_blob_sizes(struct lsm_blob_sizes *needed)
 #ifdef CONFIG_KEYS
 	lsm_set_blob_size(&needed->lbs_key, &blob_sizes.lbs_key);
 #endif
+	lsm_set_blob_size(&needed->lbs_mnt_opts, &blob_sizes.lbs_mnt_opts);
 	lsm_set_blob_size(&needed->lbs_msg_msg, &blob_sizes.lbs_msg_msg);
 	lsm_set_blob_size(&needed->lbs_sock, &blob_sizes.lbs_sock);
 	lsm_set_blob_size(&needed->lbs_superblock, &blob_sizes.lbs_superblock);
@@ -321,6 +322,7 @@ static void __init ordered_lsm_init(void)
 #ifdef CONFIG_KEYS
 	init_debug("key blob size        = %d\n", blob_sizes.lbs_key);
 #endif /* CONFIG_KEYS */
+	init_debug("mnt_opts blob size   = %d\n", blob_sizes.lbs_mnt_opts);
 	init_debug("msg_msg blob size    = %d\n", blob_sizes.lbs_msg_msg);
 	init_debug("sock blob size       = %d\n", blob_sizes.lbs_sock);
 	init_debug("superblock blob size = %d\n", blob_sizes.lbs_superblock);
@@ -779,6 +781,21 @@ static int append_ctx(char **ctx, int *ctxlen, const char *lsm, char *new,
 	return 0;
 }
 
+/**
+ * lsm_mnt_opts_alloc - allocate a composite mnt_opts blob
+ *
+ * Allocate the mount options blob
+ *
+ * Returns the blob, or NULL if memory can't be allocated.
+ */
+void *lsm_mnt_opts_alloc(void)
+{
+	if (blob_sizes.lbs_mnt_opts == 0)
+		return NULL;
+
+	return kzalloc(blob_sizes.lbs_mnt_opts, GFP_KERNEL);
+}
+
 /*
  * Hook list operation macros.
  *
@@ -985,6 +1002,7 @@ void security_free_mnt_opts(void **mnt_opts)
 	if (!*mnt_opts)
 		return;
 	call_void_hook(sb_free_mnt_opts, *mnt_opts);
+	kfree(*mnt_opts);
 	*mnt_opts = NULL;
 }
 EXPORT_SYMBOL(security_free_mnt_opts);
