@@ -4954,7 +4954,8 @@ static int selinux_socket_getpeersec_stream(struct socket *sock, char **optval,
 	return err;
 }
 
-static int selinux_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *skb, u32 *secid)
+static void selinux_socket_getpeersec_dgram(struct socket *sock,
+					    struct sk_buff *skb, u32 *secid)
 {
 	u32 peer_secid = SECSID_NULL;
 	u16 family;
@@ -4977,9 +4978,7 @@ static int selinux_socket_getpeersec_dgram(struct socket *sock, struct sk_buff *
 
 out:
 	*secid = peer_secid;
-	if (peer_secid == SECSID_NULL)
-		return -EINVAL;
-	return 0;
+	return;
 }
 
 static int selinux_sk_alloc_security(struct sock *sk, int family, gfp_t priority)
@@ -6321,6 +6320,9 @@ static int selinux_ismaclabel(const char *name)
 
 static int selinux_secid_to_secctx(u32 secid, char **secdata, u32 *seclen)
 {
+	if (secid == SECSID_NULL)
+		return -EINVAL;
+
 	return security_sid_to_context(&selinux_state, secid,
 				       secdata, seclen);
 }

@@ -134,9 +134,7 @@ static void ip_cmsg_recv_security(struct msghdr *msg, struct sk_buff *skb)
 	struct lsmblob lb;
 	int err;
 
-	err = security_socket_getpeersec_dgram(NULL, skb, &lb);
-	if (err)
-		return;
+	security_socket_getpeersec_dgram(NULL, skb, &lb);
 
 	err = security_secid_to_secctx(&lb, &context, LSMBLOB_DISPLAY);
 	if (err)
