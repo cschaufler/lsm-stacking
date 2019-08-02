@@ -2060,6 +2060,7 @@ struct lsm_blob_sizes {
 	int	lbs_key;
 	int	lbs_msg_msg;
 	int	lbs_task;
+	int	lbs_mnt_opts;
 };
 
 /*
@@ -2147,5 +2148,9 @@ static inline int lsm_task_display(struct task_struct *task)
 		return *display;
 	return LSMBLOB_INVALID;
 }
+
+#ifdef CONFIG_SECURITY
+void *lsm_mnt_opts_alloc(void);
+#endif
 
 #endif /* ! __LINUX_LSM_HOOKS_H */
