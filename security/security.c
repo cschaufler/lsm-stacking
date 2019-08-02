@@ -2195,7 +2195,8 @@ int security_getprocattr(struct task_struct *p, const char *lsm, char *name,
 				kfree(final);
 				return rc;
 			}
-			rc = append_ctx(&final, &finallen, lsm, cp, strlen(cp));
+			rc = append_ctx(&final, &finallen, hp->lsmid->lsm,
+					cp, rc);
 			if (rc < 0) {
 				kfree(final);
 				return rc;
