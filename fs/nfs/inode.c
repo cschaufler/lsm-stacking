@@ -341,13 +341,16 @@ void nfs_setsecurity(struct inode *inode, struct nfs_fattr *fattr,
 					struct nfs4_label *label)
 {
 	int error;
+	struct lsmcontext context = { .slot = LSMBLOB_FIRST };
 
 	if (label == NULL)
 		return;
 
-	if ((fattr->valid & NFS_ATTR_FATTR_V4_SECURITY_LABEL) && inode->i_security) {
-		error = security_inode_notifysecctx(inode, label->label,
-				label->len);
+	if ((fattr->valid & NFS_ATTR_FATTR_V4_SECURITY_LABEL) &&
+	    inode->i_security) {
+		context.context = label->label;
+		context.len = label->len;
+		error = security_inode_notifysecctx(inode, &context);
 		if (error)
 			printk(KERN_ERR "%s() %s %d "
 					"security_inode_notifysecctx() %d\n",

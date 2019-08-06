@@ -493,8 +493,8 @@ int security_secctx_to_secid(const char *secdata, u32 seclen,
 void security_release_secctx(struct lsmcontext *cp);
 
 void security_inode_invalidate_secctx(struct inode *inode);
-int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen);
-int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen);
+int security_inode_notifysecctx(struct inode *inode, struct lsmcontext *cp);
+int security_inode_setsecctx(struct dentry *dentry, struct lsmcontext *cp);
 int security_inode_getsecctx(struct inode *inode, struct lsmcontext *cp);
 #else /* CONFIG_SECURITY */
 
@@ -1288,11 +1288,13 @@ static inline void security_inode_invalidate_secctx(struct inode *inode)
 {
 }
 
-static inline int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen)
+static inline int security_inode_notifysecctx(struct inode *inode,
+					      struct lsmcontext *cp);
 {
 	return -EOPNOTSUPP;
 }
-static inline int security_inode_setsecctx(struct dentry *dentry, void *ctx, u32 ctxlen)
+static inline int security_inode_setsecctx(struct dentry *dentry,
+					   struct lsmcontext *cp)
 {
 	return -EOPNOTSUPP;
 }
