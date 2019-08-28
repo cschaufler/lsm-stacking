@@ -2009,12 +2009,37 @@ static inline u32 open_file_to_av(struct file *file)
 	return av;
 }
 
+/*
+ * Verify that if the "display" LSM is SELinux for either task
+ * that it is for both tasks.
+ */
+static inline bool compatible_task_displays(struct task_struct *here,
+					    struct task_struct *there)
+{
+	int h = lsm_task_display(here);
+	int t = lsm_task_display(there);
+
+	if (h == t)
+		return true;
+
+	/* unspecified is only ok if SELinux isn't going to be involved */
+	if (selinux_lsmid.slot == LSMBLOB_FIRST)
+		return ((h == LSMBLOB_FIRST && t == LSMBLOB_INVALID) ||
+			(t == LSMBLOB_FIRST && h == LSMBLOB_INVALID));
+
+	/* it's ok only if neither display is SELinux */
+	return (h != selinux_lsmid.slot && t != selinux_lsmid.slot);
+}
+
 /* Hook functions begin here. */
 
 static int selinux_binder_set_context_mgr(struct task_struct *mgr)
 {
 	u32 mysid = current_sid();
 	u32 mgrsid = task_sid(mgr);
+
+	if (!compatible_task_displays(current, mgr))
+		return -EINVAL;
 
 	return avc_has_perm(&selinux_state,
 			    mysid, mgrsid, SECCLASS_BINDER,
@@ -2028,6 +2053,9 @@ static int selinux_binder_transaction(struct task_struct *from,
 	u32 fromsid = task_sid(from);
 	u32 tosid = task_sid(to);
 	int rc;
+
+	if (!compatible_task_displays(from, to))
+		return -EINVAL;
 
 	if (mysid != fromsid) {
 		rc = avc_has_perm(&selinux_state,
@@ -2048,6 +2076,9 @@ static int selinux_binder_transfer_binder(struct task_struct *from,
 	u32 fromsid = task_sid(from);
 	u32 tosid = task_sid(to);
 
+	if (!compatible_task_displays(from, to))
+		return -EINVAL;
+
 	return avc_has_perm(&selinux_state,
 			    fromsid, tosid, SECCLASS_BINDER, BINDER__TRANSFER,
 			    NULL);
@@ -2063,6 +2094,9 @@ static int selinux_binder_transfer_file(struct task_struct *from,
 	struct inode_security_struct *isec;
 	struct common_audit_data ad;
 	int rc;
+
+	if (!compatible_task_displays(from, to))
+		return -EINVAL;
 
 	ad.type = LSM_AUDIT_DATA_PATH;
 	ad.u.path = file->f_path;

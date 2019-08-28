@@ -125,6 +125,7 @@ struct lsmblob {
 	u32     secid[LSMBLOB_ENTRIES];
 };
 
+#define LSMBLOB_FIRST		0	/* First valid LSM slot number */
 #define LSMBLOB_INVALID		-1	/* Not a valid LSM slot number */
 #define LSMBLOB_NEEDED		-2	/* Slot requested on initialization */
 #define LSMBLOB_NOT_NEEDED	-3	/* Slot not requested */
