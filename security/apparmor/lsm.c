@@ -614,6 +614,10 @@ static int apparmor_setprocattr(const char *name, void *value,
 	if (size == 0)
 		return -EINVAL;
 
+	/* ToDo: Decide on the AppArmor policy for switching the display */
+	if (!strcmp(name, "display"))
+		return 0;
+
 	/* AppArmor requires that the buffer must be null terminated atm */
 	if (args[size - 1] != '\0') {
 		/* null terminate */

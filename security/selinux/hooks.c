@@ -6170,6 +6170,12 @@ static int selinux_setprocattr(const char *name, void *value, size_t size)
 	/*
 	 * Basic control over ability to set these attributes at all.
 	 */
+
+	/*
+	 * ToDo: Decide on the SELinux policy for switching the display
+	 */
+	if (!strcmp(name, "display"))
+		return 0;
 	if (!strcmp(name, "exec"))
 		error = avc_has_perm(&selinux_state,
 				     mysid, mysid, SECCLASS_PROCESS,
