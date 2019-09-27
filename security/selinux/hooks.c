@@ -6164,10 +6164,15 @@ static int selinux_setprocattr(const char *name, void *value, size_t size)
 	 */
 
 	/*
-	 * ToDo: Decide on the SELinux policy for switching the display
+	 * For setting display, we only perform a permission check;
+	 * the actual update to the display value is handled by the
+	 * LSM framework.
 	 */
 	if (!strcmp(name, "display"))
-		return 0;
+		return avc_has_perm(&selinux_state,
+				    mysid, mysid, SECCLASS_PROCESS2,
+				    PROCESS2__SETDISPLAY, NULL);
+
 	if (!strcmp(name, "exec"))
 		error = avc_has_perm(&selinux_state,
 				     mysid, mysid, SECCLASS_PROCESS,
