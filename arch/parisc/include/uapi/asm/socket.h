@@ -115,6 +115,7 @@
 #define SO_SNDTIMEO_NEW         0x4041
 
 #define SO_DETACH_REUSEPORT_BPF 0x4042
+#define SO_PEERCONTEXT          0x4043
 
 #if !defined(__KERNEL__)
 

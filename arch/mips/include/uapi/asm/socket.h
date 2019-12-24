@@ -134,6 +134,7 @@
 #define SO_SNDTIMEO_NEW         67
 
 #define SO_DETACH_REUSEPORT_BPF 68
+#define SO_PEERCONTEXT          69
 
 #if !defined(__KERNEL__)
 

@@ -199,3 +199,18 @@ capability-related fields:
 -  ``fs/nfsd/auth.c``::c:func:`nfsd_setuser()`
 
 -  ``fs/proc/array.c``::c:func:`task_cap()`
+
+LSM External Interfaces
+=======================
+
+The LSM infrastructure does not generally provide external interfaces.
+The individual security modules provide what external interfaces they
+require. The infrastructure does provide two interfaces for the special
+case where multiple security modules provide a process context. This
+is provided in compound context format.
+
+-  `lsm1\0value\0lsm2\0value\0`
+
+The special file ``/proc/pid/attr/context`` provides the security
+context of the identified process. The socket option SO_PEERCONTEXT
+provides the security context of a packet.
