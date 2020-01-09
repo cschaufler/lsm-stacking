@@ -74,13 +74,23 @@ struct ima_rule_entry {
 	bool (*fowner_op)(kuid_t, kuid_t); /* uid_eq(), uid_gt(), uid_lt() */
 	int pcr;
 	struct {
-		void *rule;	/* LSM file metadata specific */
+		void *rules[LSMBLOB_ENTRIES];
 		void *args_p;	/* audit value */
 		int type;	/* audit type */
 	} lsm[MAX_LSM_RULES];
 	char *fsname;
 	struct ima_template_desc *template;
 };
+
+static inline bool ima_lsm_isset(void *rules[])
+{
+	int i;
+
+	for (i = 0; i < LSMBLOB_ENTRIES; i++)
+		if (rules[i])
+			return true;
+	return false;
+}
 
 /*
  * Without LSM specific knowledge, the default policy can only be
@@ -252,9 +262,11 @@ __setup("ima_appraise_tcb", default_appraise_policy_setup);
 static void ima_lsm_free_rule(struct ima_rule_entry *entry)
 {
 	int i;
+	int r;
 
 	for (i = 0; i < MAX_LSM_RULES; i++) {
-		kfree(entry->lsm[i].rule);
+		for (r = 0; r < LSMBLOB_ENTRIES; r++)
+			kfree(entry->lsm[i].rules[r]);
 		kfree(entry->lsm[i].args_p);
 	}
 	kfree(entry);
@@ -277,7 +289,7 @@ static struct ima_rule_entry *ima_lsm_copy_rule(struct ima_rule_entry *entry)
 	memset(nentry->lsm, 0, sizeof_field(struct ima_rule_entry, lsm));
 
 	for (i = 0; i < MAX_LSM_RULES; i++) {
-		if (!entry->lsm[i].rule)
+		if (!ima_lsm_isset(entry->lsm[i].rules))
 			continue;
 
 		nentry->lsm[i].type = entry->lsm[i].type;
@@ -289,7 +301,7 @@ static struct ima_rule_entry *ima_lsm_copy_rule(struct ima_rule_entry *entry)
 		result = security_filter_rule_init(nentry->lsm[i].type,
 						   Audit_equal,
 						   nentry->lsm[i].args_p,
-						   &nentry->lsm[i].rule);
+						   nentry->lsm[i].rules);
 		if (result == -EINVAL)
 			pr_warn("ima: rule for LSM \'%d\' is undefined\n",
 				entry->lsm[i].type);
@@ -329,7 +341,7 @@ static void ima_lsm_update_rules(void)
 	list_for_each_entry_safe(entry, e, &ima_policy_rules, list) {
 		needs_update = 0;
 		for (i = 0; i < MAX_LSM_RULES; i++) {
-			if (entry->lsm[i].rule) {
+			if (ima_lsm_isset(entry->lsm[i].rules)) {
 				needs_update = 1;
 				break;
 			}
@@ -415,7 +427,7 @@ static bool ima_match_rules(struct ima_rule_entry *rule, struct inode *inode,
 		int rc = 0;
 		u32 osid;
 
-		if (!rule->lsm[i].rule)
+		if (!ima_lsm_isset(rule->lsm[i].rules))
 			continue;
 
 		switch (i) {
@@ -426,7 +438,7 @@ static bool ima_match_rules(struct ima_rule_entry *rule, struct inode *inode,
 			rc = security_filter_rule_match(osid,
 							rule->lsm[i].type,
 							Audit_equal,
-							rule->lsm[i].rule);
+							rule->lsm[i].rules);
 			break;
 		case LSM_SUBJ_USER:
 		case LSM_SUBJ_ROLE:
@@ -434,7 +446,7 @@ static bool ima_match_rules(struct ima_rule_entry *rule, struct inode *inode,
 			rc = security_filter_rule_match(secid,
 							rule->lsm[i].type,
 							Audit_equal,
-							rule->lsm[i].rule);
+							rule->lsm[i].rules);
 		default:
 			break;
 		}
@@ -810,7 +822,7 @@ static int ima_lsm_rule_init(struct ima_rule_entry *entry,
 {
 	int result;
 
-	if (entry->lsm[lsm_rule].rule)
+	if (ima_lsm_isset(entry->lsm[lsm_rule].rules))
 		return -EINVAL;
 
 	entry->lsm[lsm_rule].args_p = match_strdup(args);
@@ -821,8 +833,8 @@ static int ima_lsm_rule_init(struct ima_rule_entry *entry,
 	result = security_filter_rule_init(entry->lsm[lsm_rule].type,
 					   Audit_equal,
 					   entry->lsm[lsm_rule].args_p,
-					   &entry->lsm[lsm_rule].rule);
-	if (!entry->lsm[lsm_rule].rule) {
+					   entry->lsm[lsm_rule].rules);
+	if (!ima_lsm_isset(entry->lsm[lsm_rule].rules)) {
 		kfree(entry->lsm[lsm_rule].args_p);
 		return -EINVAL;
 	}
@@ -1469,7 +1481,7 @@ int ima_policy_show(struct seq_file *m, void *v)
 	}
 
 	for (i = 0; i < MAX_LSM_RULES; i++) {
-		if (entry->lsm[i].rule) {
+		if (ima_lsm_isset(entry->lsm[i].rules)) {
 			switch (i) {
 			case LSM_OBJ_USER:
 				seq_printf(m, pt(Opt_obj_user),
