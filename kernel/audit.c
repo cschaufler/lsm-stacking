@@ -1074,7 +1074,7 @@ static inline void audit_log_user_recv_msg(struct audit_buffer **ab,
 {
 	struct audit_context *context;
 
-	if (!audit_lsm_multiple_contexts()) {
+	if (!lsm_multiple_contexts()) {
 		audit_log_common_recv_msg(NULL, ab, msg_type);
 		return;
 	}
@@ -2145,7 +2145,7 @@ int audit_log_task_context(struct audit_buffer *ab, struct lsmblob *blob)
 	 * subject "context" it's necessary to put the subject data
 	 * into a separate record to maintain compatibility.
 	 */
-	if (audit_lsm_multiple_contexts()) {
+	if (lsm_multiple_contexts()) {
 		audit_log_format(ab, " subj=?");
 		return 0;
 	}
@@ -2192,7 +2192,7 @@ int audit_log_object_context(struct audit_buffer *ab,
 	 * object "context" it's necessary to put the object data
 	 * into a separate record to maintain compatibility.
 	 */
-	if (security_lsm_slot_name(1) != NULL) {
+	if (lsm_multiple_contexts()) {
 		audit_log_format(ab, " obj=?");
 		context = ab->ctx;
 		if (context)

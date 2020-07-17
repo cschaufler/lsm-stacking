@@ -245,6 +245,15 @@ static inline u32 lsmblob_value(const struct lsmblob *blob)
 
 const char *security_lsm_slot_name(int slot);
 
+static inline bool lsm_multiple_contexts(void)
+{
+#ifdef CONFIG_SECURITY
+	return security_lsm_slot_name(1) != NULL;
+#else
+	return false;
+#endif
+}
+
 /* These functions are in security/commoncap.c */
 extern int cap_capable(const struct cred *cred, struct user_namespace *ns,
 		       int cap, unsigned int opts);

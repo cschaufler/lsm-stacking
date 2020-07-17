@@ -298,11 +298,6 @@ static inline void audit_clear_dummy(struct audit_context *ctx)
 		ctx->dummy = 0;
 }
 
-static inline bool audit_lsm_multiple_contexts(void)
-{
-	return security_lsm_slot_name(1) != NULL;
-}
-
 #else /* CONFIG_AUDITSYSCALL */
 #define auditsc_get_stamp(c, t, s) 0
 #define audit_put_watch(w) {}

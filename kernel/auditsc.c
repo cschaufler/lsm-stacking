@@ -934,7 +934,7 @@ int audit_alloc(struct task_struct *tsk)
 		return 0; /* Return if not auditing. */
 
 	state = audit_filter_task(tsk, &key);
-	if (!audit_lsm_multiple_contexts() && state == AUDIT_DISABLED) {
+	if (!lsm_multiple_contexts() && state == AUDIT_DISABLED) {
 		clear_tsk_thread_flag(tsk, TIF_SYSCALL_AUDIT);
 		return 0;
 	}
@@ -1432,7 +1432,7 @@ void audit_log_lsm(struct lsmblob *blob, bool exiting)
 	int error;
 	int i;
 
-	if (!audit_lsm_multiple_contexts())
+	if (!lsm_multiple_contexts())
 		return;
 
 	if (context && context->in_syscall && !exiting)
@@ -2192,7 +2192,7 @@ EXPORT_SYMBOL_GPL(__audit_inode_child);
  */
 void audit_stamp_context(struct audit_context *ctx)
 {
-	/* ctx will be NULL unless audit_lsm_multiple_contexts() is true */
+	/* ctx will be NULL unless lsm_multiple_contexts() is true */
 	if (!ctx)
 		return;
 

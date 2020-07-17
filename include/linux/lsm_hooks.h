@@ -1661,10 +1661,12 @@ extern int lsm_inode_alloc(struct inode *inode);
  */
 static inline int lsm_task_display(struct task_struct *task)
 {
+#ifdef CONFIG_SECURITY
 	int *display = task->security;
 
 	if (display)
 		return *display;
+#endif
 	return LSMBLOB_INVALID;
 }
 
