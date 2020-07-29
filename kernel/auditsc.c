@@ -1438,7 +1438,7 @@ void audit_log_lsm(struct lsmblob *blob, bool exiting)
 	if (context && context->in_syscall && !exiting)
 		return;
 
-	ab = audit_log_start(context, GFP_KERNEL, AUDIT_MAC_TASK_CONTEXTS);
+	ab = audit_log_start(context, GFP_ATOMIC, AUDIT_MAC_TASK_CONTEXTS);
 	if (!ab)
 		return;	/* audit_panic or being filtered */
 
