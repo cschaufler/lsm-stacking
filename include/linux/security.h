@@ -170,7 +170,8 @@ static inline void lsmcontext_init(struct lsmcontext *cp, char *context,
 #define LSMBLOB_ENTRIES ( \
 	(IS_ENABLED(CONFIG_SECURITY_SELINUX) ? 1 : 0) + \
 	(IS_ENABLED(CONFIG_SECURITY_SMACK) ? 1 : 0) + \
-	(IS_ENABLED(CONFIG_SECURITY_APPARMOR) ? 1 : 0))
+	(IS_ENABLED(CONFIG_SECURITY_APPARMOR) ? 1 : 0) + \
+	(IS_ENABLED(CONFIG_BPF_LSM) ? 1 : 0))
 
 struct lsmblob {
 	u32     secid[LSMBLOB_ENTRIES];
