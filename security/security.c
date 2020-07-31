@@ -773,6 +773,8 @@ static int append_ctx(char **ctx, int *ctxlen, const char *lsm, char *new,
 {
 	char *final;
 	size_t llen;
+	size_t nlen;
+	size_t flen;
 
 	llen = strlen(lsm) + 1;
 	/*
@@ -781,18 +783,25 @@ static int append_ctx(char **ctx, int *ctxlen, const char *lsm, char *new,
 	 * of which it should be, and there are modules that do it
 	 * each way.
 	 */
-	newlen = strnlen(new, newlen) + 1;
+	nlen = strnlen(new, newlen);
 
-	final = kzalloc(*ctxlen + llen + newlen, GFP_KERNEL);
+	flen = *ctxlen + llen + nlen + 1;
+	final = kzalloc(flen, GFP_KERNEL);
+
 	if (final == NULL)
 		return -ENOMEM;
+
 	if (*ctxlen)
 		memcpy(final, *ctx, *ctxlen);
+
 	memcpy(final + *ctxlen, lsm, llen);
-	memcpy(final + *ctxlen + llen, new, newlen);
+	memcpy(final + *ctxlen + llen, new, nlen);
+
 	kfree(*ctx);
+
 	*ctx = final;
-	*ctxlen = *ctxlen + llen + newlen;
+	*ctxlen = flen;
+
 	return 0;
 }
 
