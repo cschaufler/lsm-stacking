@@ -2157,7 +2157,7 @@ static void audit_log_lsm(struct audit_context *context, struct lsmblob *blob)
 			return;
 		}
 
-		audit_log_format(ab, "%ssubj_%s=%s", sep ? " " : "",
+		audit_log_format(ab, "%ssubj_%s=\"%s\"", sep ? " " : "",
 				 lsm_slot_to_name(i), lsmdata.context);
 		sep = true;
 
@@ -2238,7 +2238,7 @@ int audit_log_object_context(struct audit_buffer *ab,
 		}
 
 		if (context) {
-			audit_log_format(lsmab, "%sobj_%s=%s",
+			audit_log_format(lsmab, "%sobj_%s=\"%s\"",
 					 sep ? " " : "",
 					 lsm_slot_to_name(i),
 					 lsmdata.context);
