@@ -2930,8 +2930,6 @@ int security_audit_rule_match(struct lsmblob *blob, u32 field, u32 op,
 			continue;
 		if (lsmrule[hp->lsmid->slot] == NULL)
 			continue;
-		if (lsmrule[hp->lsmid->slot] == NULL)
-			continue;
 		rc = hp->hook.audit_rule_match(blob->secid[hp->lsmid->slot],
 					       field, op,
 					       lsmrule[hp->lsmid->slot]);
