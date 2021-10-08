@@ -231,6 +231,15 @@ extern int lsm_name_to_slot(char *name);
 extern const char *lsm_slot_to_name(int slot);
 
 
+static inline bool lsm_multiple_contexts(void)
+{
+#ifdef CONFIG_SECURITY
+	return lsm_slot_to_name(1) != NULL;
+#else
+	return false;
+#endif
+}
+
 /**
  * lsm_task_ilsm - the "interface_lsm" for this task
  * @task: The task to report on
