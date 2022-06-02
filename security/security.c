@@ -1167,8 +1167,8 @@ void security_inode_free(struct inode *inode)
 
 int security_dentry_init_security(struct dentry *dentry, int mode,
 				  const struct qstr *name,
-				  const char **xattr_name, void **ctx,
-				  u32 *ctxlen)
+				  const char **xattr_name,
+				  struct lsmcontext *lsmctx)
 {
 	struct security_hook_list *hp;
 	int rc;
@@ -1176,9 +1176,13 @@ int security_dentry_init_security(struct dentry *dentry, int mode,
 	/*
 	 * Only one module will provide a security context.
 	 */
-	hlist_for_each_entry(hp, &security_hook_heads.dentry_init_security, list) {
+	hlist_for_each_entry(hp, &security_hook_heads.dentry_init_security,
+			     list) {
 		rc = hp->hook.dentry_init_security(dentry, mode, name,
-						   xattr_name, ctx, ctxlen);
+						   xattr_name,
+						   (void **)&lsmctx->context,
+						   &lsmctx->len);
+		lsmctx->slot = hp->lsmid->slot;
 		if (rc != LSM_RET_DEFAULT(dentry_init_security))
 			return rc;
 	}
