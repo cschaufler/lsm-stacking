@@ -6,7 +6,7 @@
 obj-$(CONFIG_KEYS)			+= keys/
 
 # always enable default capabilities
-obj-y					+= commoncap.o
+obj-y					+= commoncap.o lsm_syscalls.o
 obj-$(CONFIG_MMU)			+= min_addr.o
 
 # Object file lists
