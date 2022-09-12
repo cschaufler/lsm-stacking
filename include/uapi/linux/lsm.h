@@ -47,6 +47,7 @@ struct lsm_ctx {
 #define LSM_ID_LOCKDOWN		41
 #define LSM_ID_BPF		42
 #define LSM_ID_LANDLOCK		43
+#define LSM_ID_CAPABILITY	44
 
 /*
  * Flag values.
