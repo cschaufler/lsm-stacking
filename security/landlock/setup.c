@@ -28,6 +28,7 @@ struct lsm_id landlock_lsmid __lsm_ro_after_init = {
 	.lsm      = LANDLOCK_NAME,
 	.id       = LSM_ID_LANDLOCK,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 static int __init landlock_init(void)

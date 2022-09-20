@@ -77,9 +77,10 @@ static struct security_hook_list lockdown_hooks[] __lsm_ro_after_init = {
 };
 
 static struct lsm_id lockdown_lsmid __lsm_ro_after_init = {
-	.lsm     = "lockdown",
+	.lsm      = "lockdown",
 	.id       = LSM_ID_LOCKDOWN,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 static int __init lockdown_lsm_init(void)

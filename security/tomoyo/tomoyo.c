@@ -535,6 +535,7 @@ static struct lsm_id tomoyo_lsmid __lsm_ro_after_init = {
 	.lsm      = "tomoyo",
 	.id       = LSM_ID_TOMOYO,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 /*

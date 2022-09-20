@@ -426,6 +426,7 @@ static struct lsm_id yama_lsmid __lsm_ro_after_init = {
 	.lsm      = "yama",
 	.id       = LSM_ID_YAMA,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 static struct security_hook_list yama_hooks[] __lsm_ro_after_init = {

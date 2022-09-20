@@ -266,6 +266,7 @@ static struct lsm_id safesetid_lsmid __lsm_ro_after_init = {
 	.lsm      = "safesetid",
 	.id       = LSM_ID_SAFESETID,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 static struct security_hook_list safesetid_security_hooks[] = {

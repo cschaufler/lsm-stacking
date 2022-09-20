@@ -24,6 +24,7 @@ struct lsm_id bpf_lsmid __lsm_ro_after_init = {
 	.lsm      = "bpf",
 	.id       = LSM_ID_BPF,
 	.features = 0,
+	.slot     = LSMBLOB_NOT_NEEDED,
 };
 
 static int __init bpf_lsm_init(void)
