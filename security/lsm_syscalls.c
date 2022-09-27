@@ -154,3 +154,53 @@ free_out:
 	kfree(final);
 	return rc;
 }
+
+/**
+ * lsm_module_list - Return a list of the active security modules
+ * @ids: the LSM module ids
+ * @size: size of @ids, updated on return
+ * @flags: reserved for future use, must be zero
+ *
+ * Returns a list of the active LSM ids. On success this function
+ * returns the number of @ids array elements. This value may be zero
+ * if there are no LSMs active. If @size is insufficient to contain
+ * the return data -E2BIG is returned and @size is set to the minimum
+ * required size. In all other cases a negative value indicating the
+ * error is returned.
+ */
+SYSCALL_DEFINE3(lsm_module_list,
+	       unsigned int __user *, ids,
+	       size_t __user *, size,
+	       int, flags)
+{
+	unsigned int *interum;
+	size_t total_size = lsm_id * sizeof(*interum);
+	size_t usize;
+	int rc;
+	int i;
+
+	if (get_user(usize, size))
+		return -EFAULT;
+
+	if (usize < total_size) {
+		if (put_user(total_size, size) != 0)
+			return -EFAULT;
+		return -E2BIG;
+	}
+
+	interum = kzalloc(total_size, GFP_KERNEL);
+	if (interum == NULL)
+		return -ENOMEM;
+
+	for (i = 0; i < lsm_id; i++)
+		interum[i] = lsm_idlist[i]->id;
+
+	if (copy_to_user(ids, interum, total_size) != 0 ||
+	    put_user(total_size, size) != 0)
+		rc = -EFAULT;
+	else
+		rc = lsm_id;
+
+	kfree(interum);
+	return rc;
+}
