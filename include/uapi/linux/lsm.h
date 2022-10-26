@@ -27,4 +27,16 @@
 #define LSM_ID_BPF		11
 #define LSM_ID_LANDLOCK		12
 
+/*
+ * LSM_ATTR_XXX values identify the /proc/.../attr entry that the
+ * context represents. Not all security modules provide all of these
+ * values. Some security modules provide none of them.
+ */
+#define LSM_ATTR_CURRENT	0x0001
+#define LSM_ATTR_EXEC		0x0002
+#define LSM_ATTR_FSCREATE	0x0004
+#define LSM_ATTR_KEYCREATE	0x0008
+#define LSM_ATTR_PREV		0x0010
+#define LSM_ATTR_SOCKCREATE	0x0020
+
 #endif /* _UAPI_LINUX_LSM_H */
