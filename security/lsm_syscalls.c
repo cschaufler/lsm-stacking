@@ -182,6 +182,47 @@ free_out:
 }
 
 /**
+ * sys_lsm_set_self_attr - Set current task's security module attribute
+ * @ctx: the LSM contexts
+ * @size: size of @ctx
+ * @flags: which attribute to set
+ *
+ * Sets the calling task's LSM context. On success this function
+ * returns 0. If the attribute specified cannot be set a negative
+ * value indicating the reason for the error is returned.
+ */
+SYSCALL_DEFINE3(lsm_set_self_attr,
+		struct lsm_ctx __user *, ctx,
+		__kernel_size_t, size,
+		__u32, flags)
+{
+	int rc = -EINVAL;
+	int attr;
+	void *page;
+	struct lsm_ctx *ip;
+
+	if (size > PAGE_SIZE)
+		return -E2BIG;
+	if (size <= sizeof(*ip))
+		return -EINVAL;
+
+	attr = attr_used_index(flags);
+	if (attr < 0)
+		return attr;
+
+	page = memdup_user(ctx, size);
+	if (IS_ERR(page))
+		return PTR_ERR(page);
+
+	ip = page;
+	if (sizeof(*ip) + ip->ctx_len <= size)
+		rc = security_setprocattr(ip->id, lsm_attr_names[attr].name,
+					  ip->ctx, ip->ctx_len);
+	kfree(page);
+	return (rc > 0) ? 0 : rc;
+}
+
+/**
  * sys_lsm_module_list - Return a list of the active security modules
  * @ids: the LSM module ids
  * @size: size of @ids, updated on return
