@@ -1062,6 +1062,8 @@ asmlinkage long sys_set_mempolicy_home_node(unsigned long start, unsigned long l
 asmlinkage long sys_lsm_get_self_attr(struct lsm_ctx *ctx, size_t *size,
 				      int flags);
 asmlinkage long sys_lsm_module_list(u32 *ids, size_t *size, int flags);
+asmlinkage long sys_lsm_set_self_attr(struct lsm_ctx *ctx, size_t size,
+				      int flags);
 
 /*
  * Architecture-specific system calls
