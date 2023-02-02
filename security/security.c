@@ -2167,6 +2167,71 @@ void security_d_instantiate(struct dentry *dentry, struct inode *inode)
 }
 EXPORT_SYMBOL(security_d_instantiate);
 
+/**
+ * security_getselfattr - Read an LSM attribute of the current process.
+ * @attr: which attribute to return
+ * @ctx: the user-space destination for the information, or NULL
+ * @size: the size of space available to receive the data
+ *
+ * Returns the number of attributes found on success, negative value
+ * on error. @size is reset to the total size of the data.
+ * If @size is insufficient to contain the data -E2BIG is returned.
+ */
+int security_getselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
+			 size_t __user *size)
+{
+	struct security_hook_list *hp;
+	size_t total = 0;
+	size_t this;
+	size_t left;
+	int count = 0;
+	int rc;
+
+	if (get_user(left, size))
+		return -EFAULT;
+
+	hlist_for_each_entry(hp, &security_hook_heads.getselfattr, list) {
+		if ((hp->lsmid->attrs & attr) != attr)
+			continue;
+		this = left;
+		rc = hp->hook.getselfattr(attr, ctx, &this);
+		total += this;
+		left -= this;
+		if (rc == -E2BIG)
+			this = 0;
+		else if (rc)
+			return rc;
+		count++;
+	}
+	if (put_user(total, size))
+		return -EFAULT;
+	return count;
+}
+
+/**
+ * security_setselfattr - Set an LSM attribute on the current process.
+ * @ctx: the user-space source of the information
+ *
+ * Set an LSM attribute for the current process. The LSM, attribute
+ * and new value are included in @ctx.
+ *
+ * Returns 0 on seccess, an LSM specific value on failure.
+ */
+int security_setselfattr(u64 __user attr, struct lsm_ctx __user *ctx)
+{
+	struct security_hook_list *hp;
+	struct lsm_ctx lctx;
+
+	if (copy_from_user(&lctx, ctx, sizeof(*ctx)))
+		return -EFAULT;
+
+	hlist_for_each_entry(hp, &security_hook_heads.setselfattr, list)
+		if ((hp->lsmid->id) == lctx.id)
+			return hp->hook.setselfattr(attr, ctx);
+
+	return LSM_RET_DEFAULT(setselfattr);
+}
+
 int security_getprocattr(struct task_struct *p, int lsmid, const char *name,
 			 char **value)
 {
