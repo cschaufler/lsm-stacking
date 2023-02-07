@@ -2215,8 +2215,12 @@ int security_getselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
 	size_t total = 0;
 	size_t this;
 	size_t left;
+	void __user *vp = (void __user *)ctx;
 	int count = 0;
-	int rc;
+	int rc = LSM_RET_DEFAULT(getselfattr);
+
+	if (attr == 0)
+		return -EINVAL;
 
 	if (get_user(left, size))
 		return -EFAULT;
@@ -2229,13 +2233,17 @@ int security_getselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
 		total += this;
 		left -= this;
 		if (rc == -E2BIG)
-			this = 0;
+			left = 0;
 		else if (rc)
 			return rc;
+		vp += total;
+		ctx = (struct lsm_ctx __user *)vp;
 		count++;
 	}
 	if (put_user(total, size))
 		return -EFAULT;
+	if (rc)
+		return rc;
 	return count;
 }
 
@@ -2252,13 +2260,19 @@ int security_setselfattr(u64 __user attr, struct lsm_ctx __user *ctx)
 {
 	struct security_hook_list *hp;
 	struct lsm_ctx lctx;
+	int rc;
 
 	if (copy_from_user(&lctx, ctx, sizeof(*ctx)))
 		return -EFAULT;
 
-	hlist_for_each_entry(hp, &security_hook_heads.setselfattr, list)
-		if ((hp->lsmid->id) == lctx.id)
-			return hp->hook.setselfattr(attr, ctx);
+	hlist_for_each_entry(hp, &security_hook_heads.setselfattr, list) {
+		if ((hp->lsmid->id) != lctx.id)
+			continue;
+		rc = hp->hook.setselfattr(attr, ctx);
+		if (rc >= 0)
+			return 0;
+		return rc;
+	}
 
 	return LSM_RET_DEFAULT(setselfattr);
 }
