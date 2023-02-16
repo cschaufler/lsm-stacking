@@ -6564,19 +6564,21 @@ static int selinux_getselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
 	char *value;
 	int total_len;
 	int len;
+	int rc = 0;
 
 	len = do_getattr(attr, current, &value);
 	if (len < 0)
 		return len;
 
 	total_len = len + sizeof(*ctx);
-	*size = total_len;
 
 	if (total_len > *size)
-		return -E2BIG;
+		rc = -E2BIG;
+	else
+		lsm_fill_user_ctx(ctx, value, len, LSM_ID_SELINUX, 0);
 
-	lsm_fill_user_ctx(ctx, value, len, LSM_ID_SELINUX, 0);
-	return 0;
+	*size = total_len;
+	return rc;
 }
 
 static int selinux_setselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
