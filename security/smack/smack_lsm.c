@@ -3553,6 +3553,38 @@ static void smack_d_instantiate(struct dentry *opt_dentry, struct inode *inode)
 }
 
 /**
+ * smack_getselfattr - Smack current process attribute
+ * @p: the object task
+ * @name: the name of the attribute in /proc/.../attr
+ * @value: where to put the result
+ *
+ * Places a copy of the task Smack into value
+ *
+ * Returns the length of the smack label or an error code
+ */
+static int smack_getselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
+			     size_t *size)
+{
+	struct smack_known *skp = smk_of_current();
+	int total;
+	int slen;
+	int rc = 0;
+
+	if (attr != LSM_ATTR_CURRENT)
+		return -EINVAL;
+
+	slen = strlen(skp->smk_known) + 1;
+	total = slen + sizeof(*ctx);
+	if (total > *size)
+		rc = -E2BIG;
+	else
+		lsm_fill_user_ctx(ctx, skp->smk_known, slen, LSM_ID_SMACK, 0);
+
+	*size = total;
+	return rc;
+}
+
+/**
  * smack_getprocattr - Smack process attribute access
  * @p: the object task
  * @name: the name of the attribute in /proc/.../attr
@@ -3581,8 +3613,8 @@ static int smack_getprocattr(struct task_struct *p, const char *name, char **val
 }
 
 /**
- * smack_setprocattr - Smack process attribute setting
- * @name: the name of the attribute in /proc/.../attr
+ * do_setattr - Smack process attribute setting
+ * @attr: the ID of the attribute
  * @value: the value to set
  * @size: the size of the value
  *
@@ -3591,7 +3623,7 @@ static int smack_getprocattr(struct task_struct *p, const char *name, char **val
  *
  * Returns the length of the smack label or an error code
  */
-static int smack_setprocattr(const char *name, void *value, size_t size)
+static int do_setattr(u64 attr, void *value, size_t size)
 {
 	struct task_smack *tsp = smack_cred(current_cred());
 	struct cred *new;
@@ -3605,7 +3637,7 @@ static int smack_setprocattr(const char *name, void *value, size_t size)
 	if (value == NULL || size == 0 || size >= SMK_LONGLABEL)
 		return -EINVAL;
 
-	if (strcmp(name, "current") != 0)
+	if (attr != LSM_ATTR_CURRENT)
 		return -EINVAL;
 
 	skp = smk_import_entry(value, size);
@@ -3643,6 +3675,51 @@ static int smack_setprocattr(const char *name, void *value, size_t size)
 
 	commit_creds(new);
 	return size;
+}
+
+static int smack_setselfattr(u64 __user attr, struct lsm_ctx __user *ctx,
+			     size_t __user size)
+{
+	struct lsm_ctx *lctx;
+	void *context;
+	int rc;
+
+	context = kmalloc(size, GFP_KERNEL);
+	if (context == NULL)
+		return -ENOMEM;
+
+	lctx = (struct lsm_ctx *)context;
+	if (copy_from_user(context, ctx, size))
+		rc = -EFAULT;
+	else if (lctx->ctx_len > size)
+		rc = -EINVAL;
+	else
+		rc = do_setattr(attr, lctx + 1, lctx->ctx_len);
+
+	kfree(context);
+	if (rc > 0)
+		return 0;
+	return rc;
+}
+
+/**
+ * smack_setprocattr - Smack process attribute setting
+ * @name: the name of the attribute in /proc/.../attr
+ * @value: the value to set
+ * @size: the size of the value
+ *
+ * Sets the Smack value of the task. Only setting self
+ * is permitted and only with privilege
+ *
+ * Returns the length of the smack label or an error code
+ */
+static int smack_setprocattr(const char *name, void *value, size_t size)
+{
+	int attr = lsm_name_to_attr(name);
+
+	if (attr)
+		return do_setattr(attr, value, size);
+	return -EINVAL;
 }
 
 /**
@@ -4956,6 +5033,8 @@ static struct security_hook_list smack_hooks[] __lsm_ro_after_init = {
 
 	LSM_HOOK_INIT(d_instantiate, smack_d_instantiate),
 
+	LSM_HOOK_INIT(getselfattr, smack_getselfattr),
+	LSM_HOOK_INIT(setselfattr, smack_setselfattr),
 	LSM_HOOK_INIT(getprocattr, smack_getprocattr),
 	LSM_HOOK_INIT(setprocattr, smack_setprocattr),
 
