@@ -753,6 +753,37 @@ static int lsm_superblock_alloc(struct super_block *sb)
 	return 0;
 }
 
+/**
+ * lsm_fill_user_ctx - Fill a user space lsm_ctx structure
+ * @ctx: an LSM context to be filled
+ * @context: the new context value
+ * @context_size: the size of the new context value
+ * @id: LSM id
+ * @flags: LSM defined flags
+ *
+ * Fill all of the fields in a user space lsm_ctx structure.
+ * Caller is assumed to have verified that @ctx has enough space
+ * for @context.
+ * Returns 0 on success, -EFAULT on a copyout error.
+ */
+int lsm_fill_user_ctx(struct lsm_ctx __user *ctx, void *context,
+		      size_t context_size, u64 id, u64 flags)
+{
+	struct lsm_ctx local;
+	void __user *vc = ctx;
+
+	local.id = id;
+	local.flags = flags;
+	local.ctx_len = context_size;
+	local.len = context_size + sizeof(local);
+	vc += sizeof(local);
+	if (copy_to_user(ctx, &local, sizeof(local)))
+		return -EFAULT;
+	if (context_size > 0 && copy_to_user(vc, context, context_size))
+		return -EFAULT;
+	return 0;
+}
+
 /*
  * The default value of the LSM hook is defined in linux/lsm_hook_defs.h and
  * can be accessed with:

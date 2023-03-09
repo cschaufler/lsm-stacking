@@ -17,6 +17,57 @@
 #include <linux/lsm_hooks.h>
 #include <uapi/linux/lsm.h>
 
+struct attr_map {
+	char *name;
+	u64 attr;
+};
+
+static const struct attr_map lsm_attr_names[] = {
+	{
+		.name = "current",
+		.attr = LSM_ATTR_CURRENT,
+	},
+	{
+		.name = "exec",
+		.attr = LSM_ATTR_EXEC,
+	},
+	{
+		.name = "fscreate",
+		.attr = LSM_ATTR_FSCREATE,
+	},
+	{
+		.name = "keycreate",
+		.attr = LSM_ATTR_KEYCREATE,
+	},
+	{
+		.name = "prev",
+		.attr = LSM_ATTR_PREV,
+	},
+	{
+		.name = "sockcreate",
+		.attr = LSM_ATTR_SOCKCREATE,
+	},
+};
+
+/**
+ * lsm_name_to_attr - map an LSM attribute name to its ID
+ * @name: name of the attribute
+ *
+ * Look the given @name up in the table of know attribute names.
+ *
+ * Returns the LSM attribute value associated with @name, or 0 if
+ * there is no mapping.
+ */
+u64 lsm_name_to_attr(const char *name)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(lsm_attr_names); i++)
+		if (!strcmp(name, lsm_attr_names[i].name))
+			return lsm_attr_names[i].attr;
+	return 0;
+}
+
 /**
  * sys_lsm_set_self_attr - Set current task's security module attribute
  * @attr: which attribute to set
