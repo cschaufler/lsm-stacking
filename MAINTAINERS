@@ -18810,6 +18810,7 @@ S:	Supported
 W:	http://kernsec.org/
 T:	git git://git.kernel.org/pub/scm/linux/kernel/git/pcmoore/lsm.git
 F:	security/
+F:	include/uapi/linux/lsm.h
 X:	security/selinux/
 
 SELINUX SECURITY MODULE
