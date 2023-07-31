@@ -390,3 +390,6 @@
 449	n32	futex_waitv			sys_futex_waitv
 450	n32	set_mempolicy_home_node		sys_set_mempolicy_home_node
 451	n32	cachestat			sys_cachestat
+452	n32	lsm_get_self_attr		sys_lsm_get_self_attr
+453	n32	lsm_set_self_attr		sys_lsm_set_self_attr
+454	n32	lsm_list_modules		sys_lsm_list_modules
