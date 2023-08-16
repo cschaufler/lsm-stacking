@@ -29,6 +29,7 @@
 #include <linux/backing-dev.h>
 #include <linux/string.h>
 #include <linux/msg.h>
+#include <linux/prctl.h>
 #include <net/flow.h>
 #include <net/sock.h>
 
@@ -102,7 +103,16 @@ static struct kmem_cache *lsm_file_cache;
 static struct kmem_cache *lsm_inode_cache;
 
 char *lsm_names;
-static struct lsm_blob_sizes blob_sizes __ro_after_init;
+
+/*
+ * The task blob includes the "interface_lsm" slot used for
+ * chosing which module presents contexts.
+ * Using a long to avoid potential alignment issues with
+ * module assigned task blobs.
+ */
+static struct lsm_blob_sizes blob_sizes __ro_after_init = {
+	.lbs_task = sizeof(long),
+};
 
 /* Boot-time LSM user choice */
 static __initdata const char *chosen_lsm_order;
@@ -725,6 +735,8 @@ int lsm_inode_alloc(struct inode *inode)
  */
 static int lsm_task_alloc(struct task_struct *task)
 {
+	int *ilsm;
+
 	if (blob_sizes.lbs_task == 0) {
 		task->security = NULL;
 		return 0;
@@ -733,6 +745,15 @@ static int lsm_task_alloc(struct task_struct *task)
 	task->security = kzalloc(blob_sizes.lbs_task, GFP_KERNEL);
 	if (task->security == NULL)
 		return -ENOMEM;
+
+	/*
+	 * The start of the task blob contains the "interface" LSM ID.
+	 * Start with it set to the invalid ID, indicating that the
+	 * default first registered LSM be displayed.
+	 */
+	ilsm = task->security;
+	*ilsm = LSM_ID_UNDEF;
+
 	return 0;
 }
 
@@ -2947,14 +2968,26 @@ int security_file_truncate(struct file *file)
  */
 int security_task_alloc(struct task_struct *task, unsigned long clone_flags)
 {
+	int *oilsm = current->security;
+	int *nilsm;
 	int rc = lsm_task_alloc(task);
 
-	if (rc)
-		return rc;
-	rc = call_int_hook(task_alloc, 0, task, clone_flags);
 	if (unlikely(rc))
+		return rc;
+
+	rc = call_int_hook(task_alloc, 0, task, clone_flags);
+	if (unlikely(rc)) {
 		security_task_free(task);
-	return rc;
+		return rc;
+	}
+
+	if (oilsm) {
+		nilsm = task->security;
+		if (nilsm)
+			*nilsm = *oilsm;
+	}
+
+	return 0;
 }
 
 /**
@@ -3508,6 +3541,7 @@ int security_task_kill(struct task_struct *p, struct kernel_siginfo *info,
 int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 			unsigned long arg4, unsigned long arg5)
 {
+	int *ilsm = current->security;
 	int thisrc;
 	int rc = LSM_RET_DEFAULT(task_prctl);
 	struct security_hook_list *hp;
@@ -3520,6 +3554,19 @@ int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 				break;
 		}
 	}
+
+	switch (option) {
+	case PR_LSM_ATTR_SET:
+		if (rc && rc != -EOPNOTSUPP)
+			return rc;
+		*ilsm = arg2;
+		return 0;
+	case PR_LSM_ATTR_GET:
+		if (rc && rc != -EOPNOTSUPP)
+			return rc;
+		return *ilsm;
+	}
+
 	return rc;
 }
 
