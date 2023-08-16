@@ -305,4 +305,8 @@ struct prctl_mm_map {
 # define PR_RISCV_V_VSTATE_CTRL_NEXT_MASK	0xc
 # define PR_RISCV_V_VSTATE_CTRL_MASK		0x1f
 
+/* Set/get the active security module for /proc/self/attr */
+#define PR_LSM_ATTR_SET			71	/* Set the display LSM ID */
+#define PR_LSM_ATTR_GET			72	/* Get the display LSM ID */
+
 #endif /* _LINUX_PRCTL_H */

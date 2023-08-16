@@ -92,6 +92,7 @@
 #include <linux/fsnotify.h>
 #include <linux/fanotify.h>
 #include <linux/io_uring.h>
+#include <linux/prctl.h>
 #include <uapi/linux/lsm.h>
 
 #include "avc.h"
@@ -6529,6 +6530,24 @@ static int selinux_getprocattr(struct task_struct *p,
 	return -EINVAL;
 }
 
+static int selinux_task_prctl(int option, unsigned long arg2,
+			      unsigned long arg3, unsigned long arg4,
+			      unsigned long arg5)
+{
+	u32 mysid = current_sid();
+
+	if (option != PR_LSM_ATTR_SET)
+		return -ENOSYS;
+
+	/*
+	 * For setting interface_lsm, we only perform a permission check;
+	 * the actual update to the interface_lsm value is handled by the
+	 * LSM framework.
+	 */
+	return avc_has_perm(mysid, mysid, SECCLASS_PROCESS2,
+			    PROCESS2__SETINTERFACE_LSM, NULL);
+}
+
 static int selinux_setprocattr(const char *name, void *value, size_t size)
 {
 	int attr = lsm_name_to_attr(name);
@@ -7059,6 +7078,7 @@ static struct security_hook_list selinux_hooks[] __ro_after_init = {
 
 	LSM_HOOK_INIT(ptrace_access_check, selinux_ptrace_access_check),
 	LSM_HOOK_INIT(ptrace_traceme, selinux_ptrace_traceme),
+	LSM_HOOK_INIT(task_prctl, selinux_task_prctl),
 	LSM_HOOK_INIT(capget, selinux_capget),
 	LSM_HOOK_INIT(capset, selinux_capset),
 	LSM_HOOK_INIT(capable, selinux_capable),
