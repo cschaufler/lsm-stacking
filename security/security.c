@@ -4216,7 +4216,8 @@ EXPORT_SYMBOL(security_lsmblob_to_secctx);
  * @seclen: length of secctx
  * @secid: secid
  *
- * Convert security context to secid.
+ * Convert security context to secid. Use the interface LSM if it
+ * is specified, otherwise the first available.
  *
  * Return: Returns 0 on success, error on failure.
  */
@@ -4228,11 +4229,8 @@ int security_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid)
 
 	*secid = 0;
 	hlist_for_each_entry(hp, &security_hook_heads.secctx_to_secid, list)
-		if (ilsm == LSM_ID_UNDEF || ilsm == hp->lsmid->id) {
-			rc = hp->hook.secctx_to_secid(secdata, seclen, secid);
-			if (rc != -EOPNOTSUPP)
-				return rc;
-		}
+		if (ilsm == LSM_ID_UNDEF || ilsm == hp->lsmid->id)
+			return hp->hook.secctx_to_secid(secdata, seclen, secid);
 
 	return LSM_RET_DEFAULT(secctx_to_secid);
 }
