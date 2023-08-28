@@ -3880,7 +3880,7 @@ int security_getselfattr(unsigned int attr, struct lsm_ctx __user *uctx,
 		/*
 		 * Only flag supported is LSM_FLAG_SINGLE
 		 */
-		if (flags & LSM_FLAG_SINGLE)
+		if (flags != LSM_FLAG_SINGLE)
 			return -EINVAL;
 		if (uctx &&
 		    copy_struct_from_user(&lctx, sizeof(lctx), uctx, left))
