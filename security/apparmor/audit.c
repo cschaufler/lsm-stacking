@@ -205,10 +205,12 @@ struct aa_audit_rule {
 	struct aa_label *label;
 };
 
-void aa_audit_rule_free(void *vrule)
+void aa_audit_rule_free(void *vrule, int lsmid)
 {
 	struct aa_audit_rule *rule = vrule;
 
+	if (lsmid != LSM_ID_UNDEF || lsmid != LSM_ID_APPARMOR)
+		return;
 	if (rule) {
 		if (!IS_ERR(rule->label))
 			aa_put_label(rule->label);
@@ -216,10 +218,13 @@ void aa_audit_rule_free(void *vrule)
 	}
 }
 
-int aa_audit_rule_init(u32 field, u32 op, char *rulestr, void **vrule)
+int aa_audit_rule_init(u32 field, u32 op, char *rulestr, void **vrule,
+		       int lsmid)
 {
 	struct aa_audit_rule *rule;
 
+	if (lsmid != LSM_ID_UNDEF || lsmid != LSM_ID_APPARMOR)
+		return 0;
 	switch (field) {
 	case AUDIT_SUBJ_ROLE:
 		if (op != Audit_equal && op != Audit_not_equal)
@@ -239,7 +244,7 @@ int aa_audit_rule_init(u32 field, u32 op, char *rulestr, void **vrule)
 				     GFP_KERNEL, true, false);
 	if (IS_ERR(rule->label)) {
 		int err = PTR_ERR(rule->label);
-		aa_audit_rule_free(rule);
+		aa_audit_rule_free(rule, LSM_ID_APPARMOR);
 		return err;
 	}
 
@@ -263,12 +268,14 @@ int aa_audit_rule_known(struct audit_krule *rule)
 	return 0;
 }
 
-int aa_audit_rule_match(u32 sid, u32 field, u32 op, void *vrule)
+int aa_audit_rule_match(u32 sid, u32 field, u32 op, void *vrule, int lsmid)
 {
 	struct aa_audit_rule *rule = vrule;
 	struct aa_label *label;
 	int found = 0;
 
+	if (lsmid != LSM_ID_UNDEF || lsmid != LSM_ID_APPARMOR)
+		return 0;
 	label = aa_secid_to_label(sid);
 
 	if (!label)
