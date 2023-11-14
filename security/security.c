@@ -4686,8 +4686,14 @@ EXPORT_SYMBOL(security_sock_rcv_skb);
 int security_socket_getpeersec_stream(struct socket *sock, sockptr_t optval,
 				      sockptr_t optlen, unsigned int len)
 {
-	return call_int_hook(socket_getpeersec_stream, -ENOPROTOOPT, sock,
-			     optval, optlen, len);
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.socket_getpeersec_stream,
+			     list)
+		return hp->hook.socket_getpeersec_stream(sock, optval, optlen,
+							 len);
+
+	return -ENOPROTOOPT;
 }
 
 /**
@@ -4707,8 +4713,13 @@ int security_socket_getpeersec_stream(struct socket *sock, sockptr_t optval,
 int security_socket_getpeersec_dgram(struct socket *sock,
 				     struct sk_buff *skb, u32 *secid)
 {
-	return call_int_hook(socket_getpeersec_dgram, -ENOPROTOOPT, sock,
-			     skb, secid);
+	struct security_hook_list *hp;
+
+	hlist_for_each_entry(hp, &security_hook_heads.socket_getpeersec_dgram,
+			     list)
+		return hp->hook.socket_getpeersec_dgram(sock, skb, secid);
+
+	return -ENOPROTOOPT;
 }
 EXPORT_SYMBOL(security_socket_getpeersec_dgram);
 
