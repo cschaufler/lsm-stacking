@@ -1322,7 +1322,7 @@ static int apparmor_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 {
 	struct aa_sk_ctx *ctx = aa_sock(sk);
 
-	if (!skb->secmark)
+	if (!aa_secmark() || !skb->secmark)
 		return 0;
 
 	return apparmor_secmark_check(ctx->label, OP_RECVMSG, AA_MAY_RECEIVE,
@@ -1426,7 +1426,7 @@ static int apparmor_inet_conn_request(const struct sock *sk, struct sk_buff *skb
 {
 	struct aa_sk_ctx *ctx = aa_sock(sk);
 
-	if (!skb->secmark)
+	if (!aa_secmark() || !skb->secmark)
 		return 0;
 
 	return apparmor_secmark_check(ctx->label, OP_CONNECT, AA_MAY_CONNECT,
@@ -1442,6 +1442,7 @@ struct lsm_blob_sizes apparmor_blob_sizes __ro_after_init = {
 	.lbs_file = sizeof(struct aa_file_ctx),
 	.lbs_task = sizeof(struct aa_task_ctx),
 	.lbs_sock = sizeof(struct aa_sk_ctx),
+	.lbs_secmark = true,
 };
 
 static const struct lsm_id apparmor_lsmid = {
@@ -2105,7 +2106,7 @@ static unsigned int apparmor_ip_postroute(void *priv,
 	struct aa_sk_ctx *ctx;
 	struct sock *sk;
 
-	if (!skb->secmark)
+	if (!aa_secmark() || !skb->secmark)
 		return NF_ACCEPT;
 
 	sk = skb_to_full_sk(skb);
