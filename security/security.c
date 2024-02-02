@@ -783,7 +783,7 @@ static int lsm_ipc_alloc(struct kern_ipc_perm *kip)
  *
  * Returns 0, or -ENOMEM if memory can't be allocated.
  */
-int lsm_key_alloc(struct key *key)
+static int lsm_key_alloc(struct key *key)
 {
 	if (blob_sizes.lbs_key == 0) {
 		key->security = NULL;
