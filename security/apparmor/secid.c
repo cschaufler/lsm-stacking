@@ -102,11 +102,7 @@ int apparmor_lsmblob_to_secctx(struct lsmblob *blob, struct lsmcontext *cp)
 
 	AA_BUG(!seclen);
 
-	/* stacking scaffolding */
-	if (!blob->apparmor.label && blob->scaffold.secid)
-		label = aa_secid_to_label(blob->scaffold.secid);
-	else
-		label = blob->apparmor.label;
+	label = blob->apparmor.label;
 
 	if (!label)
 		return -EINVAL;
