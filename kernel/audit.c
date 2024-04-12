@@ -2313,7 +2313,7 @@ void audit_log_object_context(struct audit_buffer *ab, struct lsmblob *blob)
 	if (lsm_blob_cnt < 2) {
 		error = security_lsmblob_to_secctx(blob, &context,
 						   LSM_ID_UNDEF);
-		if (error) {
+		if (error < 0) {
 			if (error != -EINVAL)
 				goto error_path;
 			return;
@@ -2332,7 +2332,7 @@ void audit_log_object_context(struct audit_buffer *ab, struct lsmblob *blob)
 			continue;
 		error = security_lsmblob_to_secctx(blob, &context,
 						   lsm_idlist[i]->id);
-		if (error) {
+		if (error < 0) {
 			audit_log_format(ab, "%sobj_%s=?",
 					 space ? " " : "", lsm_idlist[i]->name);
 			if (error != -EINVAL)
