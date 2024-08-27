@@ -4787,7 +4787,7 @@ static int smack_audit_rule_known(struct audit_krule *krule)
 static int smack_audit_rule_match(struct lsmblob *blob, u32 field, u32 op,
 				  void *vrule)
 {
-	struct smack_known *skp;
+	struct smack_known *skp = blob->smack.skp;
 	char *rule = vrule;
 
 	if (unlikely(!rule)) {
@@ -4799,10 +4799,8 @@ static int smack_audit_rule_match(struct lsmblob *blob, u32 field, u32 op,
 		return 0;
 
 	/* scaffolding */
-	if (!blob->smack.skp && blob->scaffold.secid)
+	if (!skp && blob->scaffold.secid)
 		skp = smack_from_secid(blob->scaffold.secid);
-	else
-		skp = blob->smack.skp;
 
 	/*
 	 * No need to do string comparisons. If a match occurs,
@@ -4833,7 +4831,6 @@ static int smack_ismaclabel(const char *name)
 	return (strcmp(name, XATTR_SMACK_SUFFIX) == 0);
 }
 
-
 /**
  * smack_secid_to_secctx - return the smack label for a secid
  * @secid: incoming integer
@@ -4845,6 +4842,29 @@ static int smack_ismaclabel(const char *name)
 static int smack_secid_to_secctx(u32 secid, char **secdata, u32 *seclen)
 {
 	struct smack_known *skp = smack_from_secid(secid);
+
+	if (secdata)
+		*secdata = skp->smk_known;
+	*seclen = strlen(skp->smk_known);
+	return 0;
+}
+
+/**
+ * smack_lsmblob_to_secctx - return the smack label
+ * @blob: includes incoming Smack data
+ * @secdata: destination
+ * @seclen: how long it is
+ *
+ * Exists for audit code.
+ */
+static int smack_lsmblob_to_secctx(struct lsmblob *blob, char **secdata,
+				   u32 *seclen)
+{
+	struct smack_known *skp = blob->smack.skp;
+
+	/* scaffolding */
+	if (!skp && blob->scaffold.secid)
+		skp = smack_from_secid(blob->scaffold.secid);
 
 	if (secdata)
 		*secdata = skp->smk_known;
@@ -5208,6 +5228,7 @@ static struct security_hook_list smack_hooks[] __ro_after_init = {
 
 	LSM_HOOK_INIT(ismaclabel, smack_ismaclabel),
 	LSM_HOOK_INIT(secid_to_secctx, smack_secid_to_secctx),
+	LSM_HOOK_INIT(lsmblob_to_secctx, smack_lsmblob_to_secctx),
 	LSM_HOOK_INIT(secctx_to_secid, smack_secctx_to_secid),
 	LSM_HOOK_INIT(inode_notifysecctx, smack_inode_notifysecctx),
 	LSM_HOOK_INIT(inode_setsecctx, smack_inode_setsecctx),
