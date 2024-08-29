@@ -102,11 +102,7 @@ int apparmor_lsmblob_to_secctx(struct lsmblob *blob, char **secdata,
 {
 	struct aa_label *label;
 
-	/* scaffolding */
-	if (!blob->apparmor.label && blob->scaffold.secid)
-		label = aa_secid_to_label(blob->scaffold.secid);
-	else
-		label = blob->apparmor.label;
+	label = blob->apparmor.label;
 
 	return apparmor_label_to_secctx(label, secdata, seclen);
 }
