@@ -3510,8 +3510,6 @@ static void selinux_inode_getlsmprop(struct inode *inode, struct lsm_prop *prop)
 	struct inode_security_struct *isec = inode_security_novalidate(inode);
 
 	prop->selinux.secid = isec->sid;
-	/* scaffolding */
-	prop->scaffold.secid = isec->sid;
 }
 
 static int selinux_inode_copy_up(struct dentry *src, struct cred **new)
@@ -4032,8 +4030,6 @@ static void selinux_cred_getsecid(const struct cred *c, u32 *secid)
 static void selinux_cred_getlsmprop(const struct cred *c, struct lsm_prop *prop)
 {
 	prop->selinux.secid = cred_sid(c);
-	/* scaffolding */
-	prop->scaffold.secid = prop->selinux.secid;
 }
 
 /*
@@ -4174,16 +4170,12 @@ static int selinux_task_getsid(struct task_struct *p)
 static void selinux_current_getlsmprop_subj(struct lsm_prop *prop)
 {
 	prop->selinux.secid = current_sid();
-	/* scaffolding */
-	prop->scaffold.secid = prop->selinux.secid;
 }
 
 static void selinux_task_getlsmprop_obj(struct task_struct *p,
 					struct lsm_prop *prop)
 {
 	prop->selinux.secid = task_sid_obj(p);
-	/* scaffolding */
-	prop->scaffold.secid = prop->selinux.secid;
 }
 
 static int selinux_task_setnice(struct task_struct *p, int nice)
@@ -6348,8 +6340,6 @@ static void selinux_ipc_getlsmprop(struct kern_ipc_perm *ipcp,
 {
 	struct ipc_security_struct *isec = selinux_ipc(ipcp);
 	prop->selinux.secid = isec->sid;
-	/* scaffolding */
-	prop->scaffold.secid = isec->sid;
 }
 
 static void selinux_d_instantiate(struct dentry *dentry, struct inode *inode)
@@ -6634,13 +6624,7 @@ static int selinux_secid_to_secctx(u32 secid, char **secdata, u32 *seclen)
 static int selinux_lsmprop_to_secctx(struct lsm_prop *prop, char **secdata,
 				     u32 *seclen)
 {
-	u32 secid = prop->selinux.secid;
-
-	/* scaffolding */
-	if (!secid)
-		secid = prop->scaffold.secid;
-
-	return selinux_secid_to_secctx(secid, secdata, seclen);
+	return selinux_secid_to_secctx(prop->selinux.secid, secdata, seclen);
 }
 
 static int selinux_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid)
