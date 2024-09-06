@@ -1397,7 +1397,7 @@ static void show_special(struct audit_context *context, int *call_panic)
 				 from_kuid(&init_user_ns, context->ipc.uid),
 				 from_kgid(&init_user_ns, context->ipc.gid),
 				 context->ipc.mode);
-		if (lsm_prop_is_set(&context->ipc.oprop)) {
+		if (lsmprop_is_set(&context->ipc.oprop)) {
 			char *ctx = NULL;
 			u32 len;
 
@@ -2638,8 +2638,7 @@ void __audit_ipc_obj(struct kern_ipc_perm *ipcp)
 	context->ipc.gid = ipcp->gid;
 	context->ipc.mode = ipcp->mode;
 	context->ipc.has_perm = 0;
-	/* scaffolding */
-	security_ipc_getsecid(ipcp, &context->ipc.oprop.scaffold.secid);
+	security_ipc_getlsmprop(ipcp, &context->ipc.oprop);
 	context->type = AUDIT_IPC;
 }
 
