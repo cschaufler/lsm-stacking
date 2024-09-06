@@ -289,6 +289,17 @@ static inline const char *kernel_load_data_id_str(enum kernel_load_data_id id)
 	return kernel_load_data_str[id];
 }
 
+/**
+ * lsmprop_init - initialize a lsm_prop structure
+ * @prop: Pointer to the data to initialize
+ *
+ * Set all secid for all modules to the specified value.
+ */
+static inline void lsmprop_init(struct lsm_prop *prop)
+{
+	memset(prop, 0, sizeof(*prop));
+}
+
 #ifdef CONFIG_SECURITY
 
 /**
@@ -297,7 +308,7 @@ static inline const char *kernel_load_data_id_str(enum kernel_load_data_id id)
  *
  * Returns true if there is a value set, false otherwise
  */
-static inline bool lsm_prop_is_set(struct lsm_prop *prop)
+static inline bool lsmprop_is_set(struct lsm_prop *prop)
 {
 	const struct lsm_prop empty = {};
 
@@ -515,7 +526,7 @@ int security_task_prctl(int option, unsigned long arg2, unsigned long arg3,
 void security_task_to_inode(struct task_struct *p, struct inode *inode);
 int security_create_user_ns(const struct cred *cred);
 int security_ipc_permission(struct kern_ipc_perm *ipcp, short flag);
-void security_ipc_getsecid(struct kern_ipc_perm *ipcp, u32 *secid);
+void security_ipc_getlsmprop(struct kern_ipc_perm *ipcp, struct lsm_prop *prop);
 int security_msg_msg_alloc(struct msg_msg *msg);
 void security_msg_msg_free(struct msg_msg *msg);
 int security_msg_queue_alloc(struct kern_ipc_perm *msq);
@@ -571,7 +582,7 @@ int security_bdev_setintegrity(struct block_device *bdev,
  *
  * Returns true if there is a value set, false otherwise
  */
-static inline bool lsm_prop_is_set(struct lsm_prop *prop)
+static inline bool lsmprop_is_set(struct lsm_prop *prop)
 {
 	return false;
 }
@@ -1377,9 +1388,10 @@ static inline int security_ipc_permission(struct kern_ipc_perm *ipcp,
 	return 0;
 }
 
-static inline void security_ipc_getsecid(struct kern_ipc_perm *ipcp, u32 *secid)
+static inline void security_ipc_getlsmprop(struct kern_ipc_perm *ipcp,
+					   struct lsm_prop *prop)
 {
-	*secid = 0;
+	lsmprop_init(prop);
 }
 
 static inline int security_msg_msg_alloc(struct msg_msg *msg)
