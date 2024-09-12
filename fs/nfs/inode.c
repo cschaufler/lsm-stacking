@@ -359,8 +359,7 @@ void nfs_setsecurity(struct inode *inode, struct nfs_fattr *fattr)
 
 	if ((fattr->valid & NFS_ATTR_FATTR_V4_SECURITY_LABEL) && inode->i_security) {
 		error = security_inode_notifysecctx(inode,
-						fattr->label->lsmctx.context,
-						fattr->label->lsmctx.len);
+						    &fattr->label->lsmctx);
 		if (error)
 			printk(KERN_ERR "%s() %s %d "
 					"security_inode_notifysecctx() %d\n",
