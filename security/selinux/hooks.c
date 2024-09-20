@@ -7144,6 +7144,7 @@ static int selinux_uring_cmd(struct io_uring_cmd *ioucmd)
 static const struct lsm_id selinux_lsmid = {
 	.name = "selinux",
 	.id = LSM_ID_SELINUX,
+	.lsmprop = true,
 };
 
 /*

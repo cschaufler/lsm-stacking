@@ -47,12 +47,14 @@ struct security_hook_heads {
  * struct lsm_id - Identify a Linux Security Module.
  * @lsm: name of the LSM, must be approved by the LSM maintainers
  * @id: LSM ID number from uapi/linux/lsm.h
+ * @lsmprop: indicates the LSM has an entry in struct lsm_prop
  *
  * Contains the information that identifies the LSM.
  */
 struct lsm_id {
 	const char	*name;
 	u64		id;
+	bool		lsmprop;
 };
 
 /*
