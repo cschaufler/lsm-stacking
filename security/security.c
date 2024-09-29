@@ -4387,8 +4387,7 @@ EXPORT_SYMBOL(security_inode_invalidate_secctx);
 /**
  * security_inode_notifysecctx() - Notify the LSM of an inode's security label
  * @inode: inode
- * @ctx: secctx
- * @ctxlen: length of secctx
+ * @ctx: LSM context
  *
  * Notify the security module of what the security context of an inode should
  * be.  Initializes the incore security context managed by the security module
@@ -4399,9 +4398,9 @@ EXPORT_SYMBOL(security_inode_invalidate_secctx);
  *
  * Return: Returns 0 on success, error on failure.
  */
-int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen)
+int security_inode_notifysecctx(struct inode *inode, struct lsm_context *cp)
 {
-	return call_int_hook(inode_notifysecctx, inode, ctx, ctxlen);
+	return call_int_hook(inode_notifysecctx, inode, cp);
 }
 EXPORT_SYMBOL(security_inode_notifysecctx);
 
