@@ -81,6 +81,7 @@ struct lsm_static_calls_table {
 struct lsm_id {
 	const char *name;
 	u64 id;
+	bool lsmprop;
 };
 
 /*
