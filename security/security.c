@@ -282,6 +282,7 @@ static void __init lsm_set_blob_sizes(struct lsm_blob_sizes *needed)
 	lsm_set_blob_size(&needed->lbs_tun_dev, &blob_sizes.lbs_tun_dev);
 	lsm_set_blob_size(&needed->lbs_xattr_count,
 			  &blob_sizes.lbs_xattr_count);
+	lsm_set_blob_size(&needed->lbs_mnt_opts, &blob_sizes.lbs_mnt_opts);
 	lsm_set_blob_size(&needed->lbs_bdev, &blob_sizes.lbs_bdev);
 	if (needed->lbs_secmark) {
 		if (blob_sizes.lbs_secmark)
@@ -486,6 +487,7 @@ static void __init ordered_lsm_init(void)
 	init_debug("task blob size       = %d\n", blob_sizes.lbs_task);
 	init_debug("tun device blob size = %d\n", blob_sizes.lbs_tun_dev);
 	init_debug("xattr slots          = %d\n", blob_sizes.lbs_xattr_count);
+	init_debug("mnt_opts blob size   = %d\n", blob_sizes.lbs_mnt_opts);
 	init_debug("bdev blob size       = %d\n", blob_sizes.lbs_bdev);
 
 	/*
