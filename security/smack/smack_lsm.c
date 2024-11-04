@@ -2597,6 +2597,9 @@ static int smack_netlbl_add(struct sock *sk)
 	struct smack_known *skp = ssp->smk_out;
 	int rc;
 
+	if (!smack_netlabel())
+		return 0;
+
 	local_bh_disable();
 	bh_lock_sock_nested(sk);
 
@@ -2627,6 +2630,9 @@ static int smack_netlbl_add(struct sock *sk)
 static void smack_netlbl_delete(struct sock *sk)
 {
 	struct socket_smack *ssp = smack_sock(sk);
+
+	if (!smack_netlabel())
+		return;
 
 	/*
 	 * Take the label off the socket if one is set.
@@ -2678,7 +2684,7 @@ static int smk_ipv4_check(struct sock *sk, struct sockaddr_in *sap)
 		/*
 		 * Clear the socket netlabel if it's set.
 		 */
-		if (!rc)
+		if (!rc && smack_netlabel())
 			smack_netlbl_delete(sk);
 	}
 	rcu_read_unlock();
@@ -3998,6 +4004,8 @@ static struct smack_known *smack_from_secattr(struct netlbl_lsm_secattr *sap,
 	int acat;
 	int kcat;
 
+	if (!smack_netlabel())
+		return smack_net_ambient;
 	/*
 	 * Netlabel found it in the cache.
 	 */
@@ -4154,6 +4162,9 @@ static struct smack_known *smack_from_netlbl(const struct sock *sk, u16 family,
 	struct socket_smack *ssp = NULL;
 	struct smack_known *skp = NULL;
 
+	if (!smack_netlabel())
+		return NULL;
+
 	netlbl_secattr_init(&secattr);
 
 	if (sk)
@@ -4224,7 +4235,7 @@ static int smack_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 		rc = smk_access(skp, ssp->smk_in, MAY_WRITE, &ad);
 		rc = smk_bu_note("IPv4 delivery", skp, ssp->smk_in,
 					MAY_WRITE, rc);
-		if (rc != 0)
+		if (rc != 0 && smack_netlabel())
 			netlbl_skbuff_err(skb, family, rc, 0);
 		break;
 #if IS_ENABLED(CONFIG_IPV6)
@@ -4435,7 +4446,7 @@ static int smack_inet_conn_request(const struct sock *sk, struct sk_buff *skb,
 	if (skp == NULL) {
 		skp = smack_from_netlbl(sk, family, skb);
 		if (skp == NULL)
-			skp = &smack_known_huh;
+			skp = smack_net_ambient;
 	}
 
 #ifdef CONFIG_AUDIT
@@ -4456,8 +4467,11 @@ static int smack_inet_conn_request(const struct sock *sk, struct sk_buff *skb,
 	/*
 	 * Save the peer's label in the request_sock so we can later setup
 	 * smk_packet in the child socket so that SO_PEERCRED can report it.
+	 *
+	 * Only do this if Smack is using netlabel.
 	 */
-	req->peer_secid = skp->smk_secid;
+	if (smack_netlabel())
+		req->peer_secid = skp->smk_secid;
 
 	/*
 	 * We need to decide if we want to label the incoming connection here
@@ -4470,10 +4484,13 @@ static int smack_inet_conn_request(const struct sock *sk, struct sk_buff *skb,
 	hskp = smack_ipv4host_label(&addr);
 	rcu_read_unlock();
 
-	if (hskp == NULL)
-		rc = netlbl_req_setattr(req, &ssp->smk_out->smk_netlabel);
-	else
-		netlbl_req_delattr(req);
+	if (smack_netlabel()) {
+		if (hskp == NULL)
+			rc = netlbl_req_setattr(req,
+						&ssp->smk_out->smk_netlabel);
+		else
+			netlbl_req_delattr(req);
+	}
 
 	return rc;
 }
@@ -4491,7 +4508,7 @@ static void smack_inet_csk_clone(struct sock *sk,
 	struct socket_smack *ssp = smack_sock(sk);
 	struct smack_known *skp;
 
-	if (req->peer_secid != 0) {
+	if (smack_netlabel() && req->peer_secid != 0) {
 		skp = smack_from_secid(req->peer_secid);
 		ssp->smk_packet = skp;
 	} else
@@ -5077,6 +5094,7 @@ struct lsm_blob_sizes smack_blob_sizes __ro_after_init = {
 	.lbs_xattr_count = SMACK_INODE_INIT_XATTRS,
 	.lbs_mnt_opts = sizeof(struct smack_mnt_opts),
 	.lbs_secmark = true,
+	.lbs_netlabel = true,
 };
 
 static const struct lsm_id smack_lsmid = {
