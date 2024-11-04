@@ -194,4 +194,5 @@ static inline struct xattr *lsm_get_xattr_slot(struct xattr *xattrs,
 	return &xattrs[(*xattr_count)++];
 }
 
+extern void *lsm_mnt_opts_alloc(gfp_t priority);
 #endif /* ! __LINUX_LSM_HOOKS_H */
