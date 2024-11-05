@@ -3288,8 +3288,13 @@ void security_transfer_creds(struct cred *new, const struct cred *old)
  */
 void security_cred_getsecid(const struct cred *c, u32 *secid)
 {
+	struct lsm_static_call *scall;
+
 	*secid = 0;
-	call_void_hook(cred_getsecid, c, secid);
+	lsm_for_each_hook(scall, cred_getsecid) {
+		scall->hl->hook.cred_getsecid(c, secid);
+		break;
+	}
 }
 EXPORT_SYMBOL(security_cred_getsecid);
 
