@@ -5058,6 +5058,7 @@ static const struct lsm_id smack_lsmid = {
 	.name = "smack",
 	.id = LSM_ID_SMACK,
 	.subjctx = true,
+	.objctx = true,
 };
 
 static struct security_hook_list smack_hooks[] __ro_after_init = {

@@ -321,6 +321,7 @@ static void __init initialize_lsm(struct lsm_info *lsm)
  */
 u32 lsm_active_cnt __ro_after_init;
 u32 lsm_subjctx_cnt __ro_after_init;
+u32 lsm_objctx_cnt __ro_after_init;
 const struct lsm_id *lsm_idlist[MAX_LSM_COUNT];
 
 /* Populate ordered LSMs list from comma-separated LSM name list. */
@@ -629,6 +630,8 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 		lsm_idlist[lsm_active_cnt++] = lsmid;
 		if (lsmid->subjctx)
 			lsm_subjctx_cnt++;
+		if (lsmid->objctx)
+			lsm_objctx_cnt++;
 	}
 
 	for (i = 0; i < count; i++) {

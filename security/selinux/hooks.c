@@ -7143,6 +7143,7 @@ static const struct lsm_id selinux_lsmid = {
 	.name = "selinux",
 	.id = LSM_ID_SELINUX,
 	.subjctx = true,
+	.objctx = true,
 };
 
 /*

@@ -75,6 +75,8 @@ struct lsm_static_calls_table {
  * struct lsm_id - Identify a Linux Security Module.
  * @lsm: name of the LSM, must be approved by the LSM maintainers
  * @id: LSM ID number from uapi/linux/lsm.h
+ * @subjctx: true if LSM supports a subject context
+ * @objctx: true if LSM supports an object context
  *
  * Contains the information that identifies the LSM.
  */
@@ -82,6 +84,7 @@ struct lsm_id {
 	const char *name;
 	u64 id;
 	bool subjctx;
+	bool objctx;
 };
 
 /*
