@@ -1133,7 +1133,6 @@ static int is_audit_feature_set(int i)
 	return af.features & AUDIT_FEATURE_TO_MASK(i);
 }
 
-
 static int audit_get_feature(struct sk_buff *skb)
 {
 	u32 seq;
@@ -2323,6 +2322,56 @@ int audit_log_task_context(struct audit_buffer *ab)
 	return audit_log_subj_ctx(ab, &prop);
 }
 EXPORT_SYMBOL(audit_log_task_context);
+
+int audit_log_obj_ctx(struct audit_buffer *ab, struct lsm_prop *prop)
+{
+	int i;
+	int rc;
+	int error = 0;
+	char *space = "";
+	struct lsm_context context;
+
+	if (audit_secctx_cnt < 2) {
+		error = security_lsmprop_to_secctx(prop, &context,
+						   LSM_ID_UNDEF);
+		if (error < 0) {
+			if (error != -EINVAL)
+				goto error_path;
+			return error;
+		}
+		audit_log_format(ab, " obj=%s", context.context);
+		security_release_secctx(&context);
+		return 0;
+	}
+	audit_log_format(ab, " obj=?");
+	error = audit_buffer_aux_new(ab, AUDIT_MAC_OBJ_CONTEXTS);
+	if (error)
+		goto error_path;
+
+	for (i = 0; i < audit_secctx_cnt; i++) {
+		rc = security_lsmprop_to_secctx(prop, &context,
+						audit_lsms[i]->id);
+		if (rc < 0) {
+			audit_log_format(ab, "%sobj_%s=?", space,
+					 audit_lsms[i]->name);
+			if (rc != -EINVAL)
+				audit_panic("error in audit_log_obj_ctx");
+			error = rc;
+		} else {
+			audit_log_format(ab, "%sobj_%s=%s", space,
+					 audit_lsms[i]->name, context.context);
+			security_release_secctx(&context);
+		}
+		space = " ";
+	}
+
+	audit_buffer_aux_end(ab);
+	return error;
+
+error_path:
+	audit_panic("error in audit_log_obj_ctx");
+	return error;
+}
 
 void audit_log_d_path_exe(struct audit_buffer *ab,
 			  struct mm_struct *mm)
