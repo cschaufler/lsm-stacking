@@ -5290,6 +5290,9 @@ static __init int smack_init(void)
 	/* initialize the smack_known_list */
 	init_smack_known_list();
 
+	/* Inform the audit system that secctx is used */
+	audit_lsm_secctx(&smack_lsmid);
+
 	return 0;
 }
 
