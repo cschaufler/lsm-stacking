@@ -2257,20 +2257,25 @@ static void audit_buffer_aux_end(struct audit_buffer *ab)
 	ab->skb = skb_peek(&ab->skb_list);
 }
 
-int audit_log_task_context(struct audit_buffer *ab)
+/**
+ * audit_log_subj_ctx - Add LSM subject information
+ * @ab: audit_buffer
+ * @prop: LSM subject properties.
+ *
+ * Add a subj= field and, if necessary, a AUDIT_MAC_TASK_CONTEXTS record.
+ */
+int audit_log_subj_ctx(struct audit_buffer *ab, struct lsm_prop *prop)
 {
-	struct lsm_prop prop;
 	struct lsm_context ctx;
 	bool space = false;
 	int error;
 	int i;
 
-	security_current_getlsmprop_subj(&prop);
-	if (!lsmprop_is_set(&prop))
+	if (!lsmprop_is_set(prop))
 		return 0;
 
 	if (audit_subj_secctx_cnt < 2) {
-		error = security_lsmprop_to_secctx(&prop, &ctx, LSM_ID_UNDEF);
+		error = security_lsmprop_to_secctx(prop, &ctx, LSM_ID_UNDEF);
 		if (error < 0) {
 			if (error != -EINVAL)
 				goto error_path;
@@ -2287,7 +2292,7 @@ int audit_log_task_context(struct audit_buffer *ab)
 		goto error_path;
 
 	for (i = 0; i < audit_subj_secctx_cnt; i++) {
-		error = security_lsmprop_to_secctx(&prop, &ctx,
+		error = security_lsmprop_to_secctx(prop, &ctx,
 						   audit_subj_lsms[i]->id);
 		if (error < 0) {
 			if (error == -EOPNOTSUPP)
@@ -2307,8 +2312,17 @@ int audit_log_task_context(struct audit_buffer *ab)
 	return 0;
 
 error_path:
-	audit_panic("error in audit_log_task_context");
+	audit_panic("error in audit_log_subj_ctx");
 	return error;
+}
+EXPORT_SYMBOL(audit_log_subj_ctx);
+
+int audit_log_task_context(struct audit_buffer *ab)
+{
+	struct lsm_prop prop;
+
+	security_current_getlsmprop_subj(&prop);
+	return audit_log_subj_ctx(ab, &prop);
 }
 EXPORT_SYMBOL(audit_log_task_context);
 
