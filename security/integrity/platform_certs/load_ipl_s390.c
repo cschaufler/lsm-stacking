@@ -10,12 +10,13 @@
 #include <keys/system_keyring.h>
 #include <asm/boot_data.h>
 #include "../integrity.h"
+#include "../initcalls.h"
 
 /*
  * Load the certs contained in the IPL report created by the machine loader
  * into the platform trusted keyring.
  */
-static int __init load_ipl_certs(void)
+int __init load_ipl_certs(void)
 {
 	void *ptr, *end;
 	unsigned int len;
@@ -33,4 +34,3 @@ static int __init load_ipl_certs(void)
 	}
 	return 0;
 }
-late_initcall(load_ipl_certs);

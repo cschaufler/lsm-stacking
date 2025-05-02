@@ -5042,6 +5042,7 @@ struct lsm_blob_sizes smack_blob_sizes __ro_after_init = {
 static const struct lsm_id smack_lsmid = {
 	.name = "smack",
 	.id = LSM_ID_SMACK,
+	.flags = LSM_ID_FLG_PROP_SUBJ | LSM_ID_FLG_PROP_OBJ,
 };
 
 static struct security_hook_list smack_hooks[] __ro_after_init = {
@@ -5277,13 +5278,29 @@ static __init int smack_init(void)
 	return 0;
 }
 
+static int __init smack_initcall(void)
+{
+	int rc, rc_tmp;
+
+	rc_tmp = init_smk_fs();
+	if (rc_tmp)
+		rc = rc_tmp;
+
+	rc_tmp = smack_nf_ip_init();
+	if (!rc && rc_tmp)
+		rc = rc_tmp;
+
+	return rc;
+}
+
 /*
  * Smack requires early initialization in order to label
  * all processes and objects when they are created.
  */
 DEFINE_LSM(smack) = {
-	.name = "smack",
+	.id = &smack_lsmid,
 	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
 	.blobs = &smack_blob_sizes,
 	.init = smack_init,
+	.initcall_device = smack_initcall,
 };

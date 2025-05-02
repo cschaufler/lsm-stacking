@@ -16,6 +16,11 @@
 #include <linux/types.h>
 
 /**
+ * XXX
+ */
+int selinux_audit_rule_avc_callback(u32 event);
+
+/**
  * selinux_audit_rule_init - alloc/init an selinux audit rule structure.
  * @field: the field this rule refers to
  * @op: the operator the rule uses

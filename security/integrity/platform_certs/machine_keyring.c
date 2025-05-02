@@ -7,8 +7,9 @@
 
 #include <linux/efi.h>
 #include "../integrity.h"
+#include "../initcalls.h"
 
-static __init int machine_keyring_init(void)
+int __init machine_keyring_init(void)
 {
 	int rc;
 
@@ -19,7 +20,6 @@ static __init int machine_keyring_init(void)
 	pr_notice("Machine keyring initialized\n");
 	return 0;
 }
-device_initcall(machine_keyring_init);
 
 void __init add_to_machine_keyring(const char *source, const void *data, size_t len)
 {

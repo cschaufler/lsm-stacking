@@ -25,6 +25,7 @@
 #include <crypto/hash.h>
 #include <crypto/hash_info.h>
 #include <crypto/utils.h>
+#include "../initcalls.h"
 #include "evm.h"
 
 int evm_initialized;
@@ -1112,7 +1113,7 @@ void __init evm_load_x509(void)
 }
 #endif
 
-static int __init init_evm(void)
+int __init init_evm(void)
 {
 	int error;
 	struct list_head *pos, *q;
@@ -1161,6 +1162,7 @@ static struct security_hook_list evm_hooks[] __ro_after_init = {
 static const struct lsm_id evm_lsmid = {
 	.name = "evm",
 	.id = LSM_ID_EVM,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static int __init init_evm_lsm(void)
@@ -1175,10 +1177,10 @@ struct lsm_blob_sizes evm_blob_sizes __ro_after_init = {
 };
 
 DEFINE_LSM(evm) = {
-	.name = "evm",
+	.id = &evm_lsmid,
 	.init = init_evm_lsm,
 	.order = LSM_ORDER_LAST,
 	.blobs = &evm_blob_sizes,
+	.initcall_device = integrity_device_init,
+	.initcall_late = integrity_late_init,
 };
-
-late_initcall(init_evm);

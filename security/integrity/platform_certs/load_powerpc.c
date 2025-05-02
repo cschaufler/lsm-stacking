@@ -14,6 +14,7 @@
 #include <asm/secvar.h>
 #include "keyring_handler.h"
 #include "../integrity.h"
+#include "../initcalls.h"
 
 #define extract_esl(db, data, size, offset)	\
 	do { db = data + offset; size = size - offset; } while (0)
@@ -56,7 +57,7 @@ static __init void *get_cert_list(u8 *key, unsigned long keylen, u64 *size)
  * keyring and the blacklisted X.509 cert SHA256 hashes into the blacklist
  * keyring.
  */
-static int __init load_powerpc_certs(void)
+int __init load_powerpc_certs(void)
 {
 	void *db = NULL, *dbx = NULL, *data = NULL;
 	void *trustedca;
@@ -156,4 +157,3 @@ static int __init load_powerpc_certs(void)
 
 	return rc;
 }
-late_initcall(load_powerpc_certs);
