@@ -276,6 +276,12 @@ struct smk_audit_info {
 };
 
 /*
+ * Initialization
+ */
+int init_smk_fs(void);
+int smack_nf_ip_init(void);
+
+/*
  * These functions are in smack_access.c
  */
 int smk_access_entry(char *, char *, struct list_head *);

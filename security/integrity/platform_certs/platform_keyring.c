@@ -13,6 +13,7 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include "../integrity.h"
+#include "../initcalls.h"
 
 /**
  * add_to_platform_keyring - Add to platform keyring without validation.
@@ -37,10 +38,12 @@ void __init add_to_platform_keyring(const char *source, const void *data,
 		pr_info("Error adding keys to platform keyring %s\n", source);
 }
 
-/*
- * Create the trusted keyrings.
+/**
+ * platform_keyring_init - Create the trusted keyrings.
+ *
+ * Must be initialised before we try and load the keys into the keyring.
  */
-static __init int platform_keyring_init(void)
+int __init platform_keyring_init(void)
 {
 	int rc;
 
@@ -51,8 +54,3 @@ static __init int platform_keyring_init(void)
 	pr_notice("Platform Keyring initialized\n");
 	return 0;
 }
-
-/*
- * Must be initialised before we try and load the keys into the keyring.
- */
-device_initcall(platform_keyring_init);

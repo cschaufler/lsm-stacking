@@ -24,6 +24,7 @@ static struct lsm_blob_sizes ipe_blobs __ro_after_init = {
 static const struct lsm_id ipe_lsmid = {
 	.name = "ipe",
 	.id = LSM_ID_IPE,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 struct ipe_superblock *ipe_sb(const struct super_block *sb)
@@ -92,7 +93,8 @@ static int __init ipe_init(void)
 }
 
 DEFINE_LSM(ipe) = {
-	.name = "ipe",
+	.id = &ipe_lsmid,
 	.init = ipe_init,
 	.blobs = &ipe_blobs,
+	.initcall_fs = ipe_init_securityfs,
 };

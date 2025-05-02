@@ -14,6 +14,7 @@
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <keys/system_keyring.h>
+#include "../initcalls.h"
 
 
 struct key *ima_blacklist_keyring;
@@ -21,7 +22,7 @@ struct key *ima_blacklist_keyring;
 /*
  * Allocate the IMA blacklist keyring
  */
-static __init int ima_mok_init(void)
+int __init ima_mok_init(void)
 {
 	struct key_restriction *restriction;
 
@@ -46,4 +47,3 @@ static __init int ima_mok_init(void)
 		panic("Can't allocate IMA blacklist keyring.");
 	return 0;
 }
-device_initcall(ima_mok_init);

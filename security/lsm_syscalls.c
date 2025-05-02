@@ -17,6 +17,8 @@
 #include <linux/lsm_hooks.h>
 #include <uapi/linux/lsm.h>
 
+#include "lsm.h"
+
 /**
  * lsm_name_to_attr - map an LSM attribute name to its ID
  * @name: name of the attribute
@@ -96,7 +98,7 @@ SYSCALL_DEFINE4(lsm_get_self_attr, unsigned int, attr, struct lsm_ctx __user *,
 SYSCALL_DEFINE3(lsm_list_modules, u64 __user *, ids, u32 __user *, size,
 		u32, flags)
 {
-	u32 total_size = lsm_active_cnt * sizeof(*ids);
+	u32 total_size = lsm_count * sizeof(*ids);
 	u32 usize;
 	int i;
 
@@ -112,9 +114,9 @@ SYSCALL_DEFINE3(lsm_list_modules, u64 __user *, ids, u32 __user *, size,
 	if (usize < total_size)
 		return -E2BIG;
 
-	for (i = 0; i < lsm_active_cnt; i++)
+	for (i = 0; i < lsm_count; i++)
 		if (put_user(lsm_idlist[i]->id, ids++))
 			return -EFAULT;
 
-	return lsm_active_cnt;
+	return lsm_count;
 }
