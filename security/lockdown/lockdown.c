@@ -79,6 +79,7 @@ static struct security_hook_list lockdown_hooks[] __ro_after_init = {
 static const struct lsm_id lockdown_lsmid = {
 	.name = "lockdown",
 	.id = LSM_ID_LOCKDOWN,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static int __init lockdown_lsm_init(void)
@@ -161,13 +162,12 @@ static int __init lockdown_secfs_init(void)
 	return PTR_ERR_OR_ZERO(dentry);
 }
 
-core_initcall(lockdown_secfs_init);
-
 #ifdef CONFIG_SECURITY_LOCKDOWN_LSM_EARLY
 DEFINE_EARLY_LSM(lockdown) = {
 #else
 DEFINE_LSM(lockdown) = {
 #endif
-	.name = "lockdown",
+	.id = &lockdown_lsmid,
 	.init = lockdown_lsm_init,
+	.initcall_core = lockdown_secfs_init,
 };

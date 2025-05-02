@@ -12,6 +12,7 @@
 #include <keys/system_keyring.h>
 #include "../integrity.h"
 #include "keyring_handler.h"
+#include "../initcalls.h"
 
 /*
  * On T2 Macs reading the db and dbx efi variables to load UEFI Secure Boot
@@ -157,7 +158,7 @@ static int __init load_moklist_certs(void)
  * keyring and the UEFI blacklisted X.509 cert SHA256 hashes into the blacklist
  * keyring.
  */
-static int __init load_uefi_certs(void)
+int __init load_uefi_certs(void)
 {
 	efi_guid_t secure_var = EFI_IMAGE_SECURITY_DATABASE_GUID;
 	efi_guid_t mok_var = EFI_SHIM_LOCK_GUID;
@@ -235,4 +236,3 @@ static int __init load_uefi_certs(void)
 
 	return rc;
 }
-late_initcall(load_uefi_certs);

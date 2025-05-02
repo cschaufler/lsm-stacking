@@ -25,6 +25,7 @@ bool landlock_initialized __ro_after_init = false;
 const struct lsm_id landlock_lsmid = {
 	.name = LANDLOCK_NAME,
 	.id = LSM_ID_LANDLOCK,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 struct lsm_blob_sizes landlock_blob_sizes __ro_after_init = {
@@ -75,7 +76,7 @@ static int __init landlock_init(void)
 }
 
 DEFINE_LSM(LANDLOCK_NAME) = {
-	.name = LANDLOCK_NAME,
+	.id = &landlock_lsmid,
 	.init = landlock_init,
 	.blobs = &landlock_blob_sizes,
 };

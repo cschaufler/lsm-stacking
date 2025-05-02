@@ -265,6 +265,7 @@ static int safesetid_task_fix_setgroups(struct cred *new, const struct cred *old
 static const struct lsm_id safesetid_lsmid = {
 	.name = "safesetid",
 	.id = LSM_ID_SAFESETID,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static struct security_hook_list safesetid_security_hooks[] = {
@@ -287,6 +288,7 @@ static int __init safesetid_security_init(void)
 }
 
 DEFINE_LSM(safesetid_security_init) = {
+	.id = &safesetid_lsmid,
 	.init = safesetid_security_init,
-	.name = "safesetid",
+	.initcall_fs = safesetid_init_securityfs,
 };

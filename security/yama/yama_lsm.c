@@ -419,6 +419,7 @@ static int yama_ptrace_traceme(struct task_struct *parent)
 static const struct lsm_id yama_lsmid = {
 	.name = "yama",
 	.id = LSM_ID_YAMA,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static struct security_hook_list yama_hooks[] __ro_after_init = {
@@ -476,6 +477,6 @@ static int __init yama_init(void)
 }
 
 DEFINE_LSM(yama) = {
-	.name = "yama",
+	.id = &yama_lsmid,
 	.init = yama_init,
 };

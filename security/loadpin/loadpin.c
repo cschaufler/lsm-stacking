@@ -211,6 +211,7 @@ static int loadpin_load_data(enum kernel_load_data_id id, bool contents)
 static const struct lsm_id loadpin_lsmid = {
 	.name = "loadpin",
 	.id = LSM_ID_LOADPIN,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static struct security_hook_list loadpin_hooks[] __ro_after_init = {
@@ -269,11 +270,6 @@ static int __init loadpin_init(void)
 
 	return 0;
 }
-
-DEFINE_LSM(loadpin) = {
-	.name = "loadpin",
-	.init = loadpin_init,
-};
 
 #ifdef CONFIG_SECURITY_LOADPIN_VERITY
 
@@ -434,9 +430,15 @@ static int __init init_loadpin_securityfs(void)
 	return 0;
 }
 
-fs_initcall(init_loadpin_securityfs);
-
 #endif /* CONFIG_SECURITY_LOADPIN_VERITY */
+
+DEFINE_LSM(loadpin) = {
+	.id = &loadpin_lsmid,
+	.init = loadpin_init,
+#ifdef CONFIG_SECURITY_LOADPIN_VERITY
+	.initcall_fs = init_loadpin_securityfs,
+#endif /* CONFIG_SECURITY_LOADPIN_VERITY */
+};
 
 /* Should not be mutable after boot, so not listed in sysfs (perm == 0). */
 module_param(enforce, int, 0);

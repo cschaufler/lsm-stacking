@@ -547,6 +547,7 @@ static void tomoyo_task_free(struct task_struct *task)
 static const struct lsm_id tomoyo_lsmid = {
 	.name = "tomoyo",
 	.id = LSM_ID_TOMOYO,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 /* tomoyo_hooks is used for registering TOMOYO. */
@@ -612,9 +613,10 @@ static int __init tomoyo_init(void)
 }
 
 DEFINE_LSM(tomoyo) = {
-	.name = "tomoyo",
+	.id = &tomoyo_lsmid,
 	.enabled = &tomoyo_enabled,
 	.flags = LSM_FLAG_LEGACY_MAJOR,
 	.blobs = &tomoyo_blob_sizes,
 	.init = tomoyo_init,
+	.initcall_fs = tomoyo_interface_init,
 };

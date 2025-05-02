@@ -1479,6 +1479,7 @@ int cap_mmap_addr(unsigned long addr)
 static const struct lsm_id capability_lsmid = {
 	.name = "capability",
 	.id = LSM_ID_CAPABILITY,
+	.flags = LSM_ID_FLG_NONE,
 };
 
 static struct security_hook_list capability_hooks[] __ro_after_init = {
@@ -1509,7 +1510,7 @@ static int __init capability_init(void)
 }
 
 DEFINE_LSM(capability) = {
-	.name = "capability",
+	.id = &capability_lsmid,
 	.order = LSM_ORDER_FIRST,
 	.init = capability_init,
 };
