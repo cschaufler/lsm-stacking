@@ -37,6 +37,7 @@ struct audit_watch;
 struct audit_tree;
 struct sk_buff;
 struct kern_ipc_perm;
+struct lsm_id;
 
 struct audit_krule {
 	u32			pflags;
@@ -147,6 +148,9 @@ extern unsigned compat_signal_class[];
 #define AUDIT_TTY_ENABLE	BIT(0)
 #define AUDIT_TTY_LOG_PASSWD	BIT(1)
 
+/* bit values for audit_lsm_secctx */
+#define AUDIT_SECCTX_SUBJECT	BIT(0)
+
 struct filename;
 
 #define AUDIT_OFF	0
@@ -210,6 +214,8 @@ extern u32 audit_enabled;
 
 extern int audit_signal_info(int sig, struct task_struct *t);
 
+extern void audit_lsm_secctx(const struct lsm_id *lsmid, int flags);
+
 #else /* CONFIG_AUDIT */
 static inline __printf(4, 5)
 void audit_log(struct audit_context *ctx, gfp_t gfp_mask, int type,
@@ -268,6 +274,9 @@ static inline int audit_signal_info(int sig, struct task_struct *t)
 {
 	return 0;
 }
+
+static inline void audit_lsm_secctx(const struct lsm_id *lsmid, int flags)
+{ }
 
 #endif /* CONFIG_AUDIT */
 
