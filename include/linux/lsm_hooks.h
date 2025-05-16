@@ -122,6 +122,7 @@ struct lsm_blob_sizes {
 	unsigned int lbs_xattr_count; /* num xattr slots in new_xattrs array */
 	unsigned int lbs_tun_dev;
 	unsigned int lbs_bdev;
+	bool lbs_secmark; /* expressed desire for secmark use */
 };
 
 /*
