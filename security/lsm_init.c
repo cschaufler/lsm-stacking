@@ -313,6 +313,12 @@ static void __init lsm_prep_single(struct lsm_info *lsm)
 	lsm_blob_size_update(&blobs->lbs_xattr_count,
 			     &blob_sizes.lbs_xattr_count);
 	lsm_blob_size_update(&blobs->lbs_bdev, &blob_sizes.lbs_bdev);
+	if (blobs->lbs_secmark) {
+		if (blob_sizes.lbs_secmark)
+			blobs->lbs_secmark = false;
+		else
+			blob_sizes.lbs_secmark = true;
+	}
 }
 
 /**
