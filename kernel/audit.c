@@ -311,7 +311,7 @@ void audit_lsm_secctx(const struct lsm_id *lsmid, int flags)
 		for (i = 0 ; i < audit_obj_secctx_cnt; i++)
 			if (audit_obj_lsms[i] == lsmid)
 				return;
-		audit_subj_lsms[audit_obj_secctx_cnt++] = lsmid;
+		audit_obj_lsms[audit_obj_secctx_cnt++] = lsmid;
 	}
 }
 
