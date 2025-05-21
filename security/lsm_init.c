@@ -320,6 +320,12 @@ static void __init lsm_prep_single(struct lsm_info *lsm)
 		else
 			blob_sizes.lbs_secmark = true;
 	}
+	if (blobs->lbs_netlabel) {
+		if (blob_sizes.lbs_netlabel)
+			blobs->lbs_netlabel = false;
+		else
+			blob_sizes.lbs_netlabel = true;
+	}
 }
 
 /**
