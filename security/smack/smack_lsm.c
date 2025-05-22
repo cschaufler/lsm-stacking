@@ -5346,7 +5346,7 @@ static int __init smack_initcall(void)
  */
 DEFINE_LSM(smack) = {
 	.id = &smack_lsmid,
-	.flags = LSM_FLAG_LEGACY_MAJOR | LSM_FLAG_EXCLUSIVE,
+	.flags = LSM_FLAG_LEGACY_MAJOR,
 	.blobs = &smack_blob_sizes,
 	.init = smack_init,
 	.initcall_device = smack_initcall,
