@@ -28,7 +28,6 @@ static __initdata const char *lsm_order_cmdline;
 static __initdata const char *lsm_order_legacy;
 
 /* Ordered list of LSMs to initialize. */
-static __initdata struct lsm_info *lsm_exclusive;
 static __initdata struct lsm_info *lsm_order[MAX_LSM_COUNT + 1];
 
 #define lsm_order_for_each(iter)					\
@@ -150,8 +149,7 @@ static bool __init lsm_order_exists(struct lsm_info *lsm)
  * @src: source of the addition
  *
  * Append @lsm to the enabled LSM array after ensuring that it hasn't been
- * explicitly disabled, is a duplicate entry, or would run afoul of the
- * LSM_FLAG_EXCLUSIVE logic.
+ * explicitly disabled or is a duplicate entry.
  */
 static void __init lsm_order_append(struct lsm_info *lsm, const char *src)
 {
@@ -171,19 +169,6 @@ static void __init lsm_order_append(struct lsm_info *lsm, const char *src)
 			src, lsm->id->name);
 		lsm_enabled_set(lsm, false);
 		return;
-	}
-
-	if (lsm->flags & LSM_FLAG_EXCLUSIVE) {
-		if (lsm_exclusive) {
-			lsm_pr_dbg("skip exclusive LSM conflict %s:%s\n",
-				   src, lsm->id->name);
-			lsm_enabled_set(lsm, false);
-			return;
-		} else {
-			lsm_pr_dbg("select exclusive LSM %s:%s\n",
-				   src, lsm->id->name);
-			lsm_exclusive = lsm;
-		}
 	}
 
 	lsm_enabled_set(lsm, true);
