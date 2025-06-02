@@ -78,9 +78,6 @@ bool lsm_debug __ro_after_init;
 unsigned int lsm_count __ro_after_init;
 const struct lsm_id *lsm_idlist[MAX_LSM_COUNT];
 
-unsigned int lsm_count_prop_subj __ro_after_init;
-unsigned int lsm_count_prop_obj __ro_after_init;
-
 struct lsm_blob_sizes blob_sizes;
 
 struct kmem_cache *lsm_file_cache;
