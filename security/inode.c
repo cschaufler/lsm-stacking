@@ -364,7 +364,8 @@ static ssize_t lsm_read(struct file *filp, char __user *buf, size_t count,
 		strcat(str, lsm_idlist[i]->name);
 	}
 
-	rc = simple_read_from_buffer(buf, count, ppos, str, len);
+	/* len - 1 because of NUL terminator */
+	rc = simple_read_from_buffer(buf, count, ppos, str, len - 1);
 	kfree(str);
 	return rc;
 }
