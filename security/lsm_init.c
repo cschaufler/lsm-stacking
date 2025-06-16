@@ -318,6 +318,7 @@ static void __init lsm_prep_single(struct lsm_info *lsm)
 	lsm_blob_size_update(&blobs->lbs_xattr_count,
 			     &blob_sizes.lbs_xattr_count);
 	lsm_blob_size_update(&blobs->lbs_bdev, &blob_sizes.lbs_bdev);
+	lsm_blob_size_update(&blobs->lbs_mnt_opts, &blob_sizes.lbs_mnt_opts);
 }
 
 /**
@@ -459,6 +460,7 @@ int __init security_init(void)
 		lsm_pr("blob(tun_dev) size %d\n", blob_sizes.lbs_tun_dev);
 		lsm_pr("blob(xattr) count %d\n", blob_sizes.lbs_xattr_count);
 		lsm_pr("blob(bdev) size %d\n", blob_sizes.lbs_bdev);
+		lsm_pr("blob(mnt_opts) size %d\n", blob_sizes.lbs_mnt_opts);
 	}
 
 	if (blob_sizes.lbs_file)
