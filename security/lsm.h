@@ -24,10 +24,6 @@ extern bool lsm_debug;
 extern unsigned int lsm_count;
 extern const struct lsm_id *lsm_idlist[];
 
-/* LSM property configuration */
-extern unsigned int lsm_count_prop_subj;
-extern unsigned int lsm_count_prop_obj;
-
 /* LSM blob configuration */
 extern struct lsm_blob_sizes blob_sizes;
 

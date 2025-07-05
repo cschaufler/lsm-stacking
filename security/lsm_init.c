@@ -190,11 +190,6 @@ static void __init lsm_order_append(struct lsm_info *lsm, const char *src)
 	lsm_order[lsm_count] = lsm;
 	lsm_idlist[lsm_count++] = lsm->id;
 
-	if (lsm->id->flags & LSM_ID_FLG_PROP_SUBJ)
-		lsm_count_prop_subj++;
-	if (lsm->id->flags & LSM_ID_FLG_PROP_OBJ)
-		lsm_count_prop_obj++;
-
 	lsm_pr_dbg("enabling LSM %s:%s\n", src, lsm->id->name);
 }
 
