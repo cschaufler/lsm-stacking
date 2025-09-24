@@ -367,6 +367,14 @@ static inline struct socket_smack *smack_sock(const struct sock *sock)
 	return sock->sk_security + smack_blob_sizes.lbs_sock;
 }
 
+static inline struct smack_mnt_opts *smack_mnt_opts(void *opts)
+{
+	if (!opts)
+		return NULL;
+
+	return opts + smack_blob_sizes.lbs_mnt_opts;
+}
+
 #ifdef CONFIG_KEYS
 static inline struct smack_known **smack_key(const struct key *key)
 {

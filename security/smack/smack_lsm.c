@@ -551,22 +551,13 @@ struct smack_mnt_opts {
 	const char *fstransmute;
 };
 
-static void smack_free_mnt_opts(void *mnt_opts)
-{
-	kfree(mnt_opts);
-}
-
 static int smack_add_opt(int token, const char *s, void **mnt_opts)
 {
-	struct smack_mnt_opts *opts = *mnt_opts;
+	struct smack_mnt_opts *opts = smack_mnt_opts(*mnt_opts);
 	struct smack_known *skp;
 
-	if (!opts) {
-		opts = kzalloc(sizeof(struct smack_mnt_opts), GFP_KERNEL);
-		if (!opts)
-			return -ENOMEM;
-		*mnt_opts = opts;
-	}
+	if (!opts)
+		return -ENOMEM;
 	if (!s)
 		return -ENOMEM;
 
@@ -622,10 +613,9 @@ static int smack_fs_context_submount(struct fs_context *fc,
 	struct smack_mnt_opts *ctx;
 	struct inode_smack *isp;
 
-	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
+	ctx = smack_mnt_opts(fc->security);
 	if (!ctx)
 		return -ENOMEM;
-	fc->security = ctx;
 
 	sbsp = smack_superblock(reference);
 	isp = smack_inode(reference->s_root->d_inode);
@@ -668,22 +658,15 @@ static int smack_fs_context_submount(struct fs_context *fc,
 static int smack_fs_context_dup(struct fs_context *fc,
 				struct fs_context *src_fc)
 {
-	struct smack_mnt_opts *dst, *src = src_fc->security;
+	struct smack_mnt_opts *dst = smack_mnt_opts(fc->security);
+	struct smack_mnt_opts *src = smack_mnt_opts(src_fc->security);
 
 	if (!src)
 		return 0;
+	if (!dst)
+		return 0;
 
-	fc->security = kzalloc(sizeof(struct smack_mnt_opts), GFP_KERNEL);
-	if (!fc->security)
-		return -ENOMEM;
-
-	dst = fc->security;
-	dst->fsdefault = src->fsdefault;
-	dst->fsfloor = src->fsfloor;
-	dst->fshat = src->fshat;
-	dst->fsroot = src->fsroot;
-	dst->fstransmute = src->fstransmute;
-
+	*dst = *src;
 	return 0;
 }
 
@@ -741,12 +724,8 @@ static int smack_sb_eat_lsm_opts(char *options, void **mnt_opts)
 			arg = kmemdup_nul(arg, from + len - arg, GFP_KERNEL);
 			rc = smack_add_opt(token, arg, mnt_opts);
 			kfree(arg);
-			if (unlikely(rc)) {
-				if (*mnt_opts)
-					smack_free_mnt_opts(*mnt_opts);
-				*mnt_opts = NULL;
+			if (unlikely(rc))
 				return rc;
-			}
 		} else {
 			if (!first) {	// copy with preceding comma
 				from--;
@@ -787,7 +766,7 @@ static int smack_set_mnt_opts(struct super_block *sb,
 	struct superblock_smack *sp = smack_superblock(sb);
 	struct inode_smack *isp;
 	struct smack_known *skp;
-	struct smack_mnt_opts *opts = mnt_opts;
+	struct smack_mnt_opts *opts = smack_mnt_opts(mnt_opts);
 	bool transmute = false;
 
 	if (sp->smk_flags & SMK_SB_INITIALIZED)
@@ -5048,7 +5027,6 @@ static struct security_hook_list smack_hooks[] __ro_after_init = {
 	LSM_HOOK_INIT(fs_context_parse_param, smack_fs_context_parse_param),
 
 	LSM_HOOK_INIT(sb_alloc_security, smack_sb_alloc_security),
-	LSM_HOOK_INIT(sb_free_mnt_opts, smack_free_mnt_opts),
 	LSM_HOOK_INIT(sb_eat_lsm_opts, smack_sb_eat_lsm_opts),
 	LSM_HOOK_INIT(sb_statfs, smack_sb_statfs),
 	LSM_HOOK_INIT(sb_set_mnt_opts, smack_set_mnt_opts),

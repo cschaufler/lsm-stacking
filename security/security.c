@@ -29,6 +29,7 @@
 #include <linux/overflow.h>
 #include <linux/perf_event.h>
 #include <linux/fs.h>
+#include <linux/fs_context.h>
 #include <net/flow.h>
 #include <net/sock.h>
 
@@ -1338,6 +1339,19 @@ void security_bprm_committed_creds(const struct linux_binprm *bprm)
 }
 
 /**
+ * lsm_mnt_opts_alloc - allocate a mnt_opts blob
+ * @opts: pointer to options
+ *
+ * Allocate a mount options blob.
+ *
+ * Returns 0, or -ENOMEM if memory isn't available.
+ */
+static int lsm_mnt_opts_alloc(void **opts)
+{
+	return lsm_blob_alloc(opts, blob_sizes.lbs_mnt_opts, GFP_KERNEL);
+}
+
+/**
  * security_fs_context_submount() - Initialise fc->security
  * @fc: new filesystem context
  * @reference: dentry reference for submount/remount
@@ -1348,6 +1362,13 @@ void security_bprm_committed_creds(const struct linux_binprm *bprm)
  */
 int security_fs_context_submount(struct fs_context *fc, struct super_block *reference)
 {
+	int rc;
+
+	if (!fc->security) {
+		rc = lsm_mnt_opts_alloc(&fc->security);
+		if (rc)
+			return rc;
+	}
 	return call_int_hook(fs_context_submount, fc, reference);
 }
 
@@ -1364,6 +1385,13 @@ int security_fs_context_submount(struct fs_context *fc, struct super_block *refe
  */
 int security_fs_context_dup(struct fs_context *fc, struct fs_context *src_fc)
 {
+	int rc;
+
+	if (!fc->security) {
+		rc = lsm_mnt_opts_alloc(&fc->security);
+		if (rc)
+			return rc;
+	}
 	return call_int_hook(fs_context_dup, fc, src_fc);
 }
 
@@ -1385,6 +1413,12 @@ int security_fs_context_parse_param(struct fs_context *fc,
 	struct lsm_static_call *scall;
 	int trc;
 	int rc = -ENOPARAM;
+
+	if (!fc->security) {
+		trc = lsm_mnt_opts_alloc(&fc->security);
+		if (trc)
+			return trc;
+	}
 
 	lsm_for_each_hook(scall, fs_context_parse_param) {
 		trc = scall->hl->hook.fs_context_parse_param(fc, param);
@@ -1455,6 +1489,7 @@ void security_free_mnt_opts(void **mnt_opts)
 	if (!*mnt_opts)
 		return;
 	call_void_hook(sb_free_mnt_opts, *mnt_opts);
+	kfree(*mnt_opts);
 	*mnt_opts = NULL;
 }
 EXPORT_SYMBOL(security_free_mnt_opts);
@@ -1470,6 +1505,13 @@ EXPORT_SYMBOL(security_free_mnt_opts);
  */
 int security_sb_eat_lsm_opts(char *options, void **mnt_opts)
 {
+	int rc;
+
+	if (!*mnt_opts) {
+		rc = lsm_mnt_opts_alloc(mnt_opts);
+		if (rc)
+			return rc;
+	}
 	return call_int_hook(sb_eat_lsm_opts, options, mnt_opts);
 }
 EXPORT_SYMBOL(security_sb_eat_lsm_opts);
