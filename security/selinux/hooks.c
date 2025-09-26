@@ -164,7 +164,8 @@ __setup("checkreqprot=", checkreqprot_setup);
  */
 static int selinux_secmark_enabled(void)
 {
-	return (selinux_policycap_alwaysnetwork() ||
+	return selinux_blob_sizes.lbs_secmark &&
+	       (selinux_policycap_alwaysnetwork() ||
 		atomic_read(&selinux_secmark_refcount));
 }
 
@@ -7183,6 +7184,7 @@ struct lsm_blob_sizes selinux_blob_sizes __ro_after_init = {
 	.lbs_xattr_count = SELINUX_INODE_INIT_XATTRS,
 	.lbs_tun_dev = sizeof(struct tun_security_struct),
 	.lbs_ib = sizeof(struct ib_security_struct),
+	.lbs_secmark = true,
 };
 
 #ifdef CONFIG_PERF_EVENTS
