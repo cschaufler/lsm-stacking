@@ -117,6 +117,7 @@ struct lsm_blob_sizes {
 	int lbs_tun_dev;
 	int lbs_bdev;
 	bool lbs_secmark; /* expressed desire for secmark use */
+	bool lbs_netlabel; /* expressed desire for netlabel use */
 };
 
 /*

@@ -79,7 +79,7 @@ static DEFINE_MUTEX(smk_net6addr_lock);
  * If it isn't somehow marked, use this.
  * It can be reset via smackfs/ambient
  */
-struct smack_known *smack_net_ambient;
+struct smack_known *smack_net_ambient = &smack_known_floor;
 
 /*
  * This is the level in a CIPSO header that indicates a
@@ -671,6 +671,9 @@ static void smk_cipso_doi(void)
 	struct cipso_v4_doi *doip;
 	struct netlbl_audit nai;
 
+	if (!smack_netlabel())
+		return;
+
 	smk_netlabel_audit_set(&nai);
 
 	rc = netlbl_cfg_map_del(NULL, PF_INET, NULL, NULL, &nai);
@@ -710,6 +713,9 @@ static void smk_unlbl_ambient(char *oldambient)
 {
 	int rc;
 	struct netlbl_audit nai;
+
+	if (!smack_netlabel())
+		return;
 
 	smk_netlabel_audit_set(&nai);
 
@@ -834,6 +840,8 @@ static ssize_t smk_set_cipso(struct file *file, const char __user *buf,
 	 */
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 	if (*ppos != 0)
 		return -EINVAL;
 	if (format == SMK_FIXED24_FMT &&
@@ -1156,6 +1164,8 @@ static ssize_t smk_write_net4addr(struct file *file, const char __user *buf,
 	 */
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 	if (*ppos != 0)
 		return -EINVAL;
 	if (count < SMK_NETLBLADDRMIN || count > PAGE_SIZE - 1)
@@ -1414,6 +1424,8 @@ static ssize_t smk_write_net6addr(struct file *file, const char __user *buf,
 	 */
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 	if (*ppos != 0)
 		return -EINVAL;
 	if (count < SMK_NETLBLADDRMIN || count > PAGE_SIZE - 1)
@@ -1585,6 +1597,8 @@ static ssize_t smk_write_doi(struct file *file, const char __user *buf,
 
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 
 	if (count >= sizeof(temp) || count == 0)
 		return -EINVAL;
@@ -1652,6 +1666,8 @@ static ssize_t smk_write_direct(struct file *file, const char __user *buf,
 
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 
 	if (count >= sizeof(temp) || count == 0)
 		return -EINVAL;
@@ -1730,6 +1746,8 @@ static ssize_t smk_write_mapped(struct file *file, const char __user *buf,
 
 	if (!smack_privileged(CAP_MAC_ADMIN))
 		return -EPERM;
+	if (!smack_netlabel())
+		return -EINVAL;
 
 	if (count >= sizeof(temp) || count == 0)
 		return -EINVAL;
