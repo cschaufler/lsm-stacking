@@ -356,6 +356,70 @@ static int __init lsm_static_call_init(struct security_hook_list *hl)
 	return -ENOSPC;
 }
 
+/*
+ * Hooks that are restricted to use by a single security module.
+ *
+ * Secmark hooks have not been converted from secids to lsm_props
+ * due to space limitations in packet headers.
+ *
+ * Conversions from a secid to a secctx are restricted to the
+ * single security module. All cases where there may be multiple
+ * modules providing the input data have been converted to use
+ * a lsm_prop instead of a secid.
+ */
+struct lsm_exclusive {
+	struct lsm_static_call *name;
+	char *namestr;
+	u32 flags;
+};
+
+static __initdata struct lsm_exclusive lsm_exclusive_set[] = {
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...)	\
+	{ .name = static_calls_table.NAME, .flags = FLAGS, .namestr = "" #NAME "" , },
+#include <linux/lsm_hook_defs.h>
+#undef LSM_HOOK
+};
+u64 lsm_exclusive_hooks;
+EXPORT_SYMBOL(lsm_exclusive_hooks);
+
+/**
+ * lsm_exclusive_hook_denial - Check if exclusive hook is in use
+ * @hook: the hook to check
+ *
+ * Check if the hook in question is restricted to a single using LSM,
+ * and if the LSM providing single LSM hooks is defined.
+ *
+ * Returns true if the hook is exclusive and they are already provided,
+ * false otherwise.
+ */
+static bool __init lsm_exclusive_hook_denial(struct security_hook_list *hook)
+{
+	int i;
+
+	if (lsm_exclusive_hooks == hook->lsmid->id)
+		return false;
+
+	for (i = 0; i < ARRAY_SIZE(lsm_exclusive_set); i++) {
+		if (!(lsm_exclusive_set[i].flags & LSM_FLAG_EXCLUSIVE))
+			continue;
+		if (hook->scalls == lsm_exclusive_set[i].name) {
+			if (lsm_exclusive_hooks) {
+				if (lsm_debug)
+					lsm_pr("%s denied for %s.\n",
+						lsm_exclusive_set[i].namestr,
+						hook->lsmid->name);
+				return true;
+			}
+			if (lsm_debug)
+				lsm_pr("Exclusive hooks limited to %s.\n",
+					hook->lsmid->name);
+			lsm_exclusive_hooks = hook->lsmid->id;
+			break;
+		}
+	}
+	return false;
+}
+
 /**
  * security_add_hooks - Add a LSM's hooks to the LSM framework's hook lists
  * @hooks: LSM hooks to add
@@ -371,6 +435,8 @@ void __init security_add_hooks(struct security_hook_list *hooks, int count,
 
 	for (i = 0; i < count; i++) {
 		hooks[i].lsmid = lsmid;
+		if (lsm_exclusive_hook_denial(&hooks[i]))
+			continue;
 		if (lsm_static_call_init(&hooks[i]))
 			panic("exhausted LSM callback slots with LSM %s\n",
 			      lsmid->name);

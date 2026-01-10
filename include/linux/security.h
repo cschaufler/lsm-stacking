@@ -2404,4 +2404,6 @@ static inline void security_initramfs_populated(void)
 }
 #endif /* CONFIG_SECURITY */
 
+extern u64 lsm_exclusive_hooks;
+
 #endif /* ! __LINUX_SECURITY_H */
