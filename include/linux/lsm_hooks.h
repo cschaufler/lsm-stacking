@@ -36,7 +36,7 @@
 #include <linux/lsm_count.h>
 
 union security_list_options {
-	#define LSM_HOOK(RET, DEFAULT, NAME, ...) RET (*NAME)(__VA_ARGS__);
+	#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...) RET (*NAME)(__VA_ARGS__);
 	#include "lsm_hook_defs.h"
 	#undef LSM_HOOK
 	void *lsm_func_addr;
@@ -65,7 +65,7 @@ struct lsm_static_call {
  * dynamic to adapt the number of static calls to the number of callbacks.
  */
 struct lsm_static_calls_table {
-	#define LSM_HOOK(RET, DEFAULT, NAME, ...) \
+	#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...) \
 		struct lsm_static_call NAME[MAX_LSM_COUNT];
 	#include <linux/lsm_hook_defs.h>
 	#undef LSM_HOOK

@@ -8,7 +8,7 @@
 #include <uapi/linux/lsm.h>
 
 static struct security_hook_list bpf_lsm_hooks[] __ro_after_init = {
-	#define LSM_HOOK(RET, DEFAULT, NAME, ...) \
+	#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...) \
 	LSM_HOOK_INIT(NAME, bpf_lsm_##NAME),
 	#include <linux/lsm_hook_defs.h>
 	#undef LSM_HOOK

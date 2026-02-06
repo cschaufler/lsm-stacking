@@ -117,7 +117,7 @@ do {						\
 				*((RET(*)(__VA_ARGS__))NULL));		\
 	DEFINE_STATIC_KEY_FALSE(SECURITY_HOOK_ACTIVE_KEY(NAME, NUM));
 
-#define LSM_HOOK(RET, DEFAULT, NAME, ...)				\
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...)			\
 	LSM_DEFINE_UNROLL(DEFINE_LSM_STATIC_CALL, NAME, RET, __VA_ARGS__)
 #include <linux/lsm_hook_defs.h>
 #undef LSM_HOOK
@@ -142,7 +142,7 @@ struct lsm_static_calls_table
 		.trampoline = LSM_HOOK_TRAMP(NAME, NUM),		\
 		.active = &SECURITY_HOOK_ACTIVE_KEY(NAME, NUM),		\
 	},
-#define LSM_HOOK(RET, DEFAULT, NAME, ...)				\
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...)			\
 	.NAME = {							\
 		LSM_DEFINE_UNROLL(INIT_LSM_STATIC_CALL, NAME)		\
 	},
@@ -422,7 +422,7 @@ out:
 #define DECLARE_LSM_RET_DEFAULT_void(DEFAULT, NAME)
 #define DECLARE_LSM_RET_DEFAULT_int(DEFAULT, NAME) \
 	static const int __maybe_unused LSM_RET_DEFAULT(NAME) = (DEFAULT);
-#define LSM_HOOK(RET, DEFAULT, NAME, ...) \
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...) \
 	DECLARE_LSM_RET_DEFAULT_##RET(DEFAULT, NAME)
 
 #include <linux/lsm_hook_defs.h>

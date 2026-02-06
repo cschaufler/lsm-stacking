@@ -20,16 +20,16 @@
 /* For every LSM hook that allows attachment of BPF programs, declare a nop
  * function where a BPF program can be attached.
  */
-#define LSM_HOOK(RET, DEFAULT, NAME, ...)	\
-noinline RET bpf_lsm_##NAME(__VA_ARGS__)	\
-{						\
-	return DEFAULT;				\
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...)	\
+noinline RET bpf_lsm_##NAME(__VA_ARGS__)		\
+{							\
+	return DEFAULT;					\
 }
 
 #include <linux/lsm_hook_defs.h>
 #undef LSM_HOOK
 
-#define LSM_HOOK(RET, DEFAULT, NAME, ...) BTF_ID(func, bpf_lsm_##NAME)
+#define LSM_HOOK(RET, DEFAULT, FLAGS, NAME, ...) BTF_ID(func, bpf_lsm_##NAME)
 BTF_SET_START(bpf_lsm_hooks)
 #include <linux/lsm_hook_defs.h>
 #undef LSM_HOOK
