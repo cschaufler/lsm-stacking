@@ -1511,9 +1511,11 @@ static int apparmor_socket_shutdown(struct socket *sock, int how)
 static int apparmor_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 {
 	struct aa_sk_ctx *ctx = aa_sock(sk);
+	u32 secmark;
 	int error;
 
-	if (!skb->secmark)
+	secmark = lsm_secmark_from_skb(skb, LSM_ID_APPARMOR);
+	if (!secmark)
 		return 0;
 
 	/*
@@ -1525,7 +1527,7 @@ static int apparmor_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 
 	rcu_read_lock();
 	error = apparmor_secmark_check(rcu_dereference(ctx->label), OP_RECVMSG,
-				       AA_MAY_RECEIVE, skb->secmark, sk);
+				       AA_MAY_RECEIVE, secmark, sk);
 	rcu_read_unlock();
 
 	return error;
@@ -1640,14 +1642,16 @@ static int apparmor_inet_conn_request(const struct sock *sk, struct sk_buff *skb
 				      struct request_sock *req)
 {
 	struct aa_sk_ctx *ctx = aa_sock(sk);
+	u32 secmark;
 	int error;
 
-	if (!skb->secmark)
+	secmark = lsm_secmark_from_skb(skb, LSM_ID_APPARMOR);
+	if (!secmark)
 		return 0;
 
 	rcu_read_lock();
 	error = apparmor_secmark_check(rcu_dereference(ctx->label), OP_CONNECT,
-				       AA_MAY_CONNECT, skb->secmark, sk);
+				       AA_MAY_CONNECT, secmark, sk);
 	rcu_read_unlock();
 
 	return error;
@@ -2359,9 +2363,11 @@ static unsigned int apparmor_ip_postroute(void *priv,
 {
 	struct aa_sk_ctx *ctx;
 	struct sock *sk;
+	u32 secmark;
 	int error;
 
-	if (!skb->secmark)
+	secmark = lsm_secmark_from_skb(skb, LSM_ID_APPARMOR);
+	if (!secmark)
 		return NF_ACCEPT;
 
 	sk = skb_to_full_sk(skb);
@@ -2371,7 +2377,7 @@ static unsigned int apparmor_ip_postroute(void *priv,
 	ctx = aa_sock(sk);
 	rcu_read_lock();
 	error = apparmor_secmark_check(rcu_dereference(ctx->label), OP_SENDMSG,
-				       AA_MAY_SEND, skb->secmark, sk);
+				       AA_MAY_SEND, secmark, sk);
 	rcu_read_unlock();
 	if (!error)
 		return NF_ACCEPT;
@@ -2399,12 +2405,18 @@ static const struct nf_hook_ops apparmor_nf_ops[] = {
 
 static int __net_init apparmor_nf_register(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_APPARMOR)
+		return 0;
+
 	return nf_register_net_hooks(net, apparmor_nf_ops,
 				    ARRAY_SIZE(apparmor_nf_ops));
 }
 
 static void __net_exit apparmor_nf_unregister(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_APPARMOR)
+		return;
+
 	nf_unregister_net_hooks(net, apparmor_nf_ops,
 				ARRAY_SIZE(apparmor_nf_ops));
 }

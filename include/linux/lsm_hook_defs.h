@@ -309,12 +309,12 @@ LSM_HOOK(int, -EINVAL, 0, getprocattr, struct task_struct *p, const char *name,
 LSM_HOOK(int, -EINVAL, 0, setprocattr, const char *name, void *value,
 	 size_t size)
 LSM_HOOK(int, 0, 0, ismaclabel, const char *name)
-LSM_HOOK(int, -EOPNOTSUPP, 0, secid_to_secctx, u32 secid,
+LSM_HOOK(int, -EOPNOTSUPP, LSM_FLAG_EXCLUSIVE, secid_to_secctx, u32 secid,
 	 struct lsm_context *cp)
 LSM_HOOK(int, -EOPNOTSUPP, 0, lsmprop_to_secctx, struct lsm_prop *prop,
 	 struct lsm_context *cp)
-LSM_HOOK(int, 0, 0, secctx_to_secid, const char *secdata, u32 seclen,
-	 u32 *secid)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, secctx_to_secid, const char *secdata,
+	 u32 seclen, u32 *secid)
 LSM_HOOK(void, LSM_RET_VOID, 0, release_secctx, struct lsm_context *cp)
 LSM_HOOK(void, LSM_RET_VOID, 0, inode_invalidate_secctx, struct inode *inode)
 LSM_HOOK(int, 0, 0, inode_notifysecctx, struct inode *inode, void *ctx,
@@ -379,9 +379,9 @@ LSM_HOOK(void, LSM_RET_VOID, 0, inet_csk_clone, struct sock *newsk,
 	 const struct request_sock *req)
 LSM_HOOK(void, LSM_RET_VOID, 0, inet_conn_established, struct sock *sk,
 	 struct sk_buff *skb)
-LSM_HOOK(int, 0, 0, secmark_relabel_packet, u32 secid)
-LSM_HOOK(void, LSM_RET_VOID, 0, secmark_refcount_inc, void)
-LSM_HOOK(void, LSM_RET_VOID, 0, secmark_refcount_dec, void)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, secmark_relabel_packet, u32 secid)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, secmark_refcount_inc, void)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, secmark_refcount_dec, void)
 LSM_HOOK(void, LSM_RET_VOID, 0, req_classify_flow,
 	 const struct request_sock *req, struct flowi_common *flic)
 LSM_HOOK(int, 0, 0, tun_dev_alloc_security, void *security)

@@ -326,6 +326,7 @@ int unregister_blocking_lsm_notifier(struct notifier_block *nb);
 extern int security_init(void);
 extern int early_security_init(void);
 extern u64 lsm_name_to_attr(const char *name);
+extern u32 lsm_secmark_from_skb(struct sk_buff *skb, const u64 lsmid);
 
 /* Security operations */
 int security_binder_set_context_mgr(const struct cred *mgr);

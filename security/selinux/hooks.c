@@ -5269,6 +5269,7 @@ static int selinux_sock_rcv_skb_compat(struct sock *sk, struct sk_buff *skb,
 	int err = 0;
 	struct sk_security_struct *sksec = selinux_sock(sk);
 	u32 sk_sid = sksec->sid;
+	u32 secmark;
 	struct common_audit_data ad;
 	struct lsm_network_audit net;
 	char *addrp;
@@ -5279,7 +5280,8 @@ static int selinux_sock_rcv_skb_compat(struct sock *sk, struct sk_buff *skb,
 		return err;
 
 	if (selinux_secmark_enabled()) {
-		err = avc_has_perm(sk_sid, skb->secmark, SECCLASS_PACKET,
+		secmark = lsm_secmark_from_skb(skb, LSM_ID_SELINUX);
+		err = avc_has_perm(sk_sid, secmark, SECCLASS_PACKET,
 				   PACKET__RECV, &ad);
 		if (err)
 			return err;
@@ -5299,6 +5301,7 @@ static int selinux_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 	struct sk_security_struct *sksec = selinux_sock(sk);
 	u16 family = sk->sk_family;
 	u32 sk_sid = sksec->sid;
+	u32 secmark;
 	struct common_audit_data ad;
 	struct lsm_network_audit net;
 	char *addrp;
@@ -5348,7 +5351,8 @@ static int selinux_socket_sock_rcv_skb(struct sock *sk, struct sk_buff *skb)
 	}
 
 	if (secmark_active) {
-		err = avc_has_perm(sk_sid, skb->secmark, SECCLASS_PACKET,
+		secmark = lsm_secmark_from_skb(skb, LSM_ID_SELINUX);
+		err = avc_has_perm(sk_sid, secmark, SECCLASS_PACKET,
 				   PACKET__RECV, &ad);
 		if (err)
 			return err;
@@ -5850,6 +5854,7 @@ static unsigned int selinux_ip_forward(void *priv, struct sk_buff *skb,
 	int ifindex;
 	u16 family;
 	char *addrp;
+	u32 secmark;
 	u32 peer_sid;
 	struct common_audit_data ad;
 	struct lsm_network_audit net;
@@ -5883,10 +5888,12 @@ static unsigned int selinux_ip_forward(void *priv, struct sk_buff *skb,
 		}
 	}
 
-	if (secmark_active)
-		if (avc_has_perm(peer_sid, skb->secmark,
+	if (secmark_active) {
+		secmark = lsm_secmark_from_skb(skb, LSM_ID_SELINUX);
+		if (avc_has_perm(peer_sid, secmark,
 				 SECCLASS_PACKET, PACKET__FORWARD_IN, &ad))
 			return NF_DROP;
+	}
 
 	if (netlbl_enabled())
 		/* we do this in the FORWARD path and not the POST_ROUTING
@@ -5950,6 +5957,7 @@ static unsigned int selinux_ip_postroute_compat(struct sk_buff *skb,
 	struct common_audit_data ad;
 	struct lsm_network_audit net;
 	u8 proto = 0;
+	u32 secmark;
 
 	sk = skb_to_full_sk(skb);
 	if (sk == NULL)
@@ -5960,10 +5968,12 @@ static unsigned int selinux_ip_postroute_compat(struct sk_buff *skb,
 	if (selinux_parse_skb(skb, &ad, NULL, 0, &proto))
 		return NF_DROP;
 
-	if (selinux_secmark_enabled())
-		if (avc_has_perm(sksec->sid, skb->secmark,
+	if (selinux_secmark_enabled()) {
+		secmark = lsm_secmark_from_skb(skb, LSM_ID_SELINUX);
+		if (avc_has_perm(sksec->sid, secmark,
 				 SECCLASS_PACKET, PACKET__SEND, &ad))
 			return NF_DROP_ERR(-ECONNREFUSED);
+	}
 
 	if (selinux_xfrm_postroute_last(sksec->sid, skb, &ad, proto))
 		return NF_DROP_ERR(-ECONNREFUSED);
@@ -5978,6 +5988,7 @@ static unsigned int selinux_ip_postroute(void *priv,
 	u16 family;
 	u32 secmark_perm;
 	u32 peer_sid;
+	u32 secmark;
 	int ifindex;
 	struct sock *sk;
 	struct common_audit_data ad;
@@ -6082,10 +6093,12 @@ static unsigned int selinux_ip_postroute(void *priv,
 	if (selinux_parse_skb(skb, &ad, &addrp, 0, NULL))
 		return NF_DROP;
 
-	if (secmark_active)
-		if (avc_has_perm(peer_sid, skb->secmark,
+	if (secmark_active) {
+		secmark = lsm_secmark_from_skb(skb, LSM_ID_SELINUX);
+		if (avc_has_perm(peer_sid, secmark,
 				 SECCLASS_PACKET, secmark_perm, &ad))
 			return NF_DROP_ERR(-ECONNREFUSED);
+	}
 
 	if (peerlbl_active) {
 		u32 if_sid;
@@ -7718,12 +7731,18 @@ static const struct nf_hook_ops selinux_nf_ops[] = {
 
 static int __net_init selinux_nf_register(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_SELINUX)
+		return 0;
+
 	return nf_register_net_hooks(net, selinux_nf_ops,
 				     ARRAY_SIZE(selinux_nf_ops));
 }
 
 static void __net_exit selinux_nf_unregister(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_SELINUX)
+		return;
+
 	nf_unregister_net_hooks(net, selinux_nf_ops,
 				ARRAY_SIZE(selinux_nf_ops));
 }

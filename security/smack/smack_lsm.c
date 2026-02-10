@@ -4195,10 +4195,12 @@ static int smk_skb_to_addr_ipv6(struct sk_buff *skb, struct sockaddr_in6 *sip)
 #ifdef CONFIG_NETWORK_SECMARK
 static struct smack_known *smack_from_skb(struct sk_buff *skb)
 {
-	if (skb == NULL || skb->secmark == 0)
+	u32 secmark = lsm_secmark_from_skb(skb, LSM_ID_SMACK);
+
+	if (skb == NULL || secmark == 0)
 		return NULL;
 
-	return smack_from_secid(skb->secmark);
+	return smack_from_secid(secmark);
 }
 #else
 static inline struct smack_known *smack_from_skb(struct sk_buff *skb)

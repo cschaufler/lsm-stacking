@@ -54,12 +54,18 @@ static const struct nf_hook_ops smack_nf_ops[] = {
 
 static int __net_init smack_nf_register(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_SMACK)
+		return 0;
+
 	return nf_register_net_hooks(net, smack_nf_ops,
 				     ARRAY_SIZE(smack_nf_ops));
 }
 
 static void __net_exit smack_nf_unregister(struct net *net)
 {
+	if (lsm_exclusive_hooks != LSM_ID_SMACK)
+		return;
+
 	nf_unregister_net_hooks(net, smack_nf_ops, ARRAY_SIZE(smack_nf_ops));
 }
 

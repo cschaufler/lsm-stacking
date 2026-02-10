@@ -2189,6 +2189,9 @@ static void security_load_policycaps(struct selinux_policy *policy)
 			pr_info("SELinux:  unknown policy capability %u\n",
 				i);
 	}
+	if (selinux_state.policycap[POLICYDB_CAP_ALWAYSNETWORK] &&
+	    lsm_exclusive_hooks != LSM_ID_SELINUX)
+		pr_warn("SELinux:  policy capability alwaysnetwork is set, but secmark is used by another LSM.\n");
 }
 
 static int security_preserve_bools(struct selinux_policy *oldpolicy,

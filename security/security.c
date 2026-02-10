@@ -4510,6 +4510,21 @@ void security_inet_conn_established(struct sock *sk,
 EXPORT_SYMBOL(security_inet_conn_established);
 
 /**
+ * lsm_secmark_from_skb - secid for the specified LSM from the packet
+ * @skb: the packet
+ * @lsm: which LSM is asking
+ *
+ * If the specified LSM has use of the secmark, return its value.
+ * Otherwise, return the invalid secid 0.
+ */
+u32 lsm_secmark_from_skb(struct sk_buff *skb, const u64 lsmid)
+{
+	if (lsmid == lsm_exclusive_hooks)
+		return skb->secmark;
+	return 0;
+}
+
+/**
  * security_secmark_relabel_packet() - Check if setting a secmark is allowed
  * @secid: new secmark value
  *
