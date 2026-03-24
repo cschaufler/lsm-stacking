@@ -442,12 +442,13 @@ LSM_HOOK(void, LSM_RET_VOID, 0, key_post_create_or_update, struct key *keyring,
 #endif /* CONFIG_KEYS */
 
 #ifdef CONFIG_AUDIT
-LSM_HOOK(int, 0, 0, audit_rule_init, u32 field, u32 op, char *rulestr,
-	 void **lsmrule, gfp_t gfp)
-LSM_HOOK(int, 0, 0, audit_rule_known, struct audit_krule *krule)
-LSM_HOOK(int, 0, 0, audit_rule_match, struct lsm_prop *prop, u32 field, u32 op,
-	 void *lsmrule)
-LSM_HOOK(void, LSM_RET_VOID, 0, audit_rule_free, void *lsmrule)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, audit_rule_init, u32 field, u32 op,
+	 char *rulestr, void **lsmrule, gfp_t gfp)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, audit_rule_known,
+	 struct audit_krule *krule)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, audit_rule_match, struct lsm_prop *prop,
+	 u32 field, u32 op, void *lsmrule)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, audit_rule_free, void *lsmrule)
 #endif /* CONFIG_AUDIT */
 
 #ifdef CONFIG_BPF_SYSCALL
