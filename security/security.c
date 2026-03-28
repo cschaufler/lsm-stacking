@@ -4971,23 +4971,11 @@ int security_xfrm_state_pol_flow_match(struct xfrm_state *x,
 				       struct xfrm_policy *xp,
 				       const struct flowi_common *flic)
 {
-	struct lsm_static_call *scall;
-	int rc = LSM_RET_DEFAULT(xfrm_state_pol_flow_match);
-
 	/*
-	 * Since this function is expected to return 0 or 1, the judgment
-	 * becomes difficult if multiple LSMs supply this call. Fortunately,
-	 * we can use the first LSM's judgment because currently only SELinux
-	 * supplies this call.
-	 *
-	 * For speed optimization, we explicitly break the loop rather than
-	 * using the macro
+	 * Previous versions of this broke the loop for speed optimization.
+	 * As this is marked as an exclusive hook that is unnecessary.
 	 */
-	lsm_for_each_hook(scall, xfrm_state_pol_flow_match) {
-		rc = scall->hl->hook.xfrm_state_pol_flow_match(x, xp, flic);
-		break;
-	}
-	return rc;
+	return call_int_hook(xfrm_state_pol_flow_match, x, xp, flic);
 }
 
 /**

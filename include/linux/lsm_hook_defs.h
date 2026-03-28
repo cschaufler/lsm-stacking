@@ -409,25 +409,35 @@ LSM_HOOK(int, 0, 0, ib_endport_manage_subnet, void *sec, const char *dev_name,
 LSM_HOOK(int, 0, 0, ib_alloc_security, void *sec)
 #endif /* CONFIG_SECURITY_INFINIBAND */
 
+/*
+ * The entire set of xfrm hooks are marked as exclusive
+ * because of their use of security contexts.
+ */
 #ifdef CONFIG_SECURITY_NETWORK_XFRM
-LSM_HOOK(int, 0, 0, xfrm_policy_alloc_security, struct xfrm_sec_ctx **ctxp,
-	 struct xfrm_user_sec_ctx *sec_ctx, gfp_t gfp)
-LSM_HOOK(int, 0, 0, xfrm_policy_clone_security, struct xfrm_sec_ctx *old_ctx,
-	 struct xfrm_sec_ctx **new_ctx)
-LSM_HOOK(void, LSM_RET_VOID, 0, xfrm_policy_free_security,
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_policy_alloc_security,
+	 struct xfrm_sec_ctx **ctxp, struct xfrm_user_sec_ctx *sec_ctx,
+	 gfp_t gfp)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_policy_clone_security,
+	 struct xfrm_sec_ctx *old_ctx, struct xfrm_sec_ctx **new_ctx)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, xfrm_policy_free_security,
 	 struct xfrm_sec_ctx *ctx)
-LSM_HOOK(int, 0, 0, xfrm_policy_delete_security, struct xfrm_sec_ctx *ctx)
-LSM_HOOK(int, 0, 0, xfrm_state_alloc, struct xfrm_state *x,
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_policy_delete_security,
+	 struct xfrm_sec_ctx *ctx)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_state_alloc, struct xfrm_state *x,
 	 struct xfrm_user_sec_ctx *sec_ctx)
-LSM_HOOK(int, 0, 0, xfrm_state_alloc_acquire,
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_state_alloc_acquire,
 	 struct xfrm_state *x, struct xfrm_sec_ctx *polsec, u32 secid)
-LSM_HOOK(void, LSM_RET_VOID, 0, xfrm_state_free_security, struct xfrm_state *x)
-LSM_HOOK(int, 0, 0, xfrm_state_delete_security, struct xfrm_state *x)
-LSM_HOOK(int, 0, 0, xfrm_policy_lookup, struct xfrm_sec_ctx *ctx, u32 fl_secid)
-LSM_HOOK(int, 1, 0, xfrm_state_pol_flow_match, struct xfrm_state *x,
-	 struct xfrm_policy *xp, const struct flowi_common *flic)
-LSM_HOOK(int, 0, 0, xfrm_decode_session, struct sk_buff *skb, u32 *secid,
-	 int ckall)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, xfrm_state_free_security,
+	 struct xfrm_state *x)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_state_delete_security,
+	 struct xfrm_state *x)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_policy_lookup,
+	 struct xfrm_sec_ctx *ctx, u32 fl_secid)
+LSM_HOOK(int, 1, LSM_FLAG_EXCLUSIVE, xfrm_state_pol_flow_match,
+	 struct xfrm_state *x, struct xfrm_policy *xp,
+	 const struct flowi_common *flic)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, xfrm_decode_session, struct sk_buff *skb,
+	 u32 *secid, int ckall)
 #endif /* CONFIG_SECURITY_NETWORK_XFRM */
 
 /* key management security hooks */
