@@ -391,6 +391,11 @@ static inline struct smack_known **smack_key(const struct key *key)
 }
 #endif /* CONFIG_KEYS */
 
+static inline bool smack_netlabel(void)
+{
+	return lsm_exclusive_hooks == LSM_ID_SMACK;
+}
+
 /*
  * Is the directory transmuting?
  */

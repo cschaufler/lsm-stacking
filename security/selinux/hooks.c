@@ -183,7 +183,7 @@ static int selinux_secmark_enabled(void)
 static int selinux_peerlbl_enabled(void)
 {
 	return (selinux_policycap_alwaysnetwork() ||
-		netlbl_enabled() || selinux_xfrm_enabled());
+		selinux_netlbl_enabled() || selinux_xfrm_enabled());
 }
 
 static int selinux_netcache_avc_callback(u32 event)
@@ -5895,7 +5895,7 @@ static unsigned int selinux_ip_forward(void *priv, struct sk_buff *skb,
 			return NF_DROP;
 	}
 
-	if (netlbl_enabled())
+	if (selinux_netlbl_enabled())
 		/* we do this in the FORWARD path and not the POST_ROUTING
 		 * path because we want to make sure we apply the necessary
 		 * labeling before IPsec is applied so we can leverage AH
@@ -5912,7 +5912,7 @@ static unsigned int selinux_ip_output(void *priv, struct sk_buff *skb,
 	struct sock *sk;
 	u32 sid;
 
-	if (!netlbl_enabled())
+	if (!selinux_netlbl_enabled())
 		return NF_ACCEPT;
 
 	/* we do this in the LOCAL_OUT path and not the POST_ROUTING path
