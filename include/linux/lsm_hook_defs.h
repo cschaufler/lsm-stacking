@@ -69,9 +69,11 @@ LSM_HOOK(int, -ENOPARAM, 0, fs_context_parse_param, struct fs_context *fc,
 LSM_HOOK(int, 0, 0, sb_alloc_security, struct super_block *sb)
 LSM_HOOK(void, LSM_RET_VOID, 0, sb_delete, struct super_block *sb)
 LSM_HOOK(void, LSM_RET_VOID, 0, sb_free_security, struct super_block *sb)
-LSM_HOOK(void, LSM_RET_VOID, 0, sb_free_mnt_opts, void *mnt_opts)
+LSM_HOOK(void, LSM_RET_VOID, LSM_FLAG_EXCLUSIVE, sb_free_mnt_opts,
+	 void *mnt_opts)
 LSM_HOOK(int, 0, 0, sb_eat_lsm_opts, char *orig, void **mnt_opts)
-LSM_HOOK(int, 0, 0, sb_mnt_opts_compat, struct super_block *sb, void *mnt_opts)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, sb_mnt_opts_compat,
+	 struct super_block *sb, void *mnt_opts)
 LSM_HOOK(int, 0, 0, sb_remount, struct super_block *sb, void *mnt_opts)
 LSM_HOOK(int, 0, 0, sb_kern_mount, const struct super_block *sb)
 LSM_HOOK(int, 0, 0, sb_show_options, struct seq_file *m, struct super_block *sb)
@@ -81,11 +83,12 @@ LSM_HOOK(int, 0, 0, sb_mount, const char *dev_name, const struct path *path,
 LSM_HOOK(int, 0, 0, sb_umount, struct vfsmount *mnt, int flags)
 LSM_HOOK(int, 0, 0, sb_pivotroot, const struct path *old_path,
 	 const struct path *new_path)
-LSM_HOOK(int, 0, 0, sb_set_mnt_opts, struct super_block *sb, void *mnt_opts,
-	 unsigned long kern_flags, unsigned long *set_kern_flags)
-LSM_HOOK(int, 0, 0, sb_clone_mnt_opts, const struct super_block *oldsb,
-	 struct super_block *newsb, unsigned long kern_flags,
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, sb_set_mnt_opts, struct super_block *sb,
+	 void *mnt_opts, unsigned long kern_flags,
 	 unsigned long *set_kern_flags)
+LSM_HOOK(int, 0, LSM_FLAG_EXCLUSIVE, sb_clone_mnt_opts,
+	 const struct super_block *oldsb, struct super_block *newsb,
+	 unsigned long kern_flags, unsigned long *set_kern_flags)
 LSM_HOOK(int, 0, 0, move_mount, const struct path *from_path,
 	 const struct path *to_path)
 LSM_HOOK(int, -EOPNOTSUPP, 0, dentry_init_security, struct dentry *dentry,
