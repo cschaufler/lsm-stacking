@@ -17,6 +17,7 @@
 #include <linux/random.h>
 #include <linux/smp.h>
 #include <linux/static_key.h>
+#include <linux/lsm_secxa.h>
 #include <net/dst.h>
 #include <net/ip.h>
 #include <net/sock.h>
@@ -502,7 +503,7 @@ void nft_meta_set_eval(const struct nft_expr *expr,
 		break;
 #ifdef CONFIG_NETWORK_SECMARK
 	case NFT_META_SECMARK:
-		skb->secmark = value;
+		secxa_set_secmark(skb, value);
 		break;
 #endif
 	default:
@@ -950,7 +951,7 @@ static void nft_secmark_obj_eval(struct nft_object *obj, struct nft_regs *regs,
 	const struct nft_secmark *priv = nft_obj_data(obj);
 	struct sk_buff *skb = pkt->skb;
 
-	skb->secmark = priv->secid;
+	secxa_set_secmark(skb, priv->secid);
 }
 
 static int nft_secmark_obj_init(const struct nft_ctx *ctx,

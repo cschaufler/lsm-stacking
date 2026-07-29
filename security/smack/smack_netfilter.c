@@ -14,6 +14,7 @@
 #include <linux/netfilter_ipv4.h>
 #include <linux/netfilter_ipv6.h>
 #include <linux/netdevice.h>
+#include <linux/lsm_secxa.h>
 #include <net/inet_sock.h>
 #include <net/net_namespace.h>
 #include "smack.h"
@@ -29,7 +30,7 @@ static unsigned int smack_ip_output(void *priv,
 	if (sk) {
 		ssp = smack_sock(sk);
 		skp = ssp->smk_out;
-		skb->secmark = skp->smk_secid;
+		secxa_set_secmark(skb, skp->smk_secid);
 	}
 
 	return NF_ACCEPT;
