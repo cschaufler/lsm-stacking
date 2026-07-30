@@ -10,12 +10,12 @@
 #ifdef CONFIG_SECURITY
 
 #include <linux/security.h>
-#include <linux/skbuff.h>
 
-static inline void secxa_set_secmark(struct sk_buff *skb, u32 secxa)
-{
-	skb->secmark = secxa;
-}
+struct sk_buff;
+
+int secxa_from_lsmprop(struct lsm_prop *prop);
+int secxa_get_lsmprop(struct lsm_prop **pro, u32 secxa);
+void secxa_set_secmark(struct sk_buff *skb, u32 secxa);
 
 #endif /* CONFIG_SECURITY */
 
