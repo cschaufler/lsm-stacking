@@ -576,6 +576,11 @@ int security_secid_to_secctx(u32 secid, struct lsm_context *cp);
 int security_lsmprop_to_secctx(struct lsm_prop *prop, struct lsm_context *cp,
 			       int lsmid);
 int security_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid);
+int security_secctx_to_lsmprop(const char *secdata, u32 seclen,
+			       struct lsm_prop *prop, int lsmid);
+
+int security_update_lsmprop(struct lsm_prop *dest, struct lsm_prop *src,
+			    int lsmid);
 void security_release_secctx(struct lsm_context *cp);
 void security_inode_invalidate_secctx(struct inode *inode);
 int security_inode_notifysecctx(struct inode *inode, void *ctx, u32 ctxlen);
@@ -1581,9 +1586,21 @@ static inline int security_lsmprop_to_secctx(struct lsm_prop *prop,
 	return -EOPNOTSUPP;
 }
 
+static inline int security_update_lsmprop(struct lsm_prop *dest,
+					  struct lsm_prop *src, int lsmid)
+{
+	return -EOPNOTSUPP;
+}
+
 static inline int security_secctx_to_secid(const char *secdata,
 					   u32 seclen,
 					   u32 *secid)
+{
+	return -EOPNOTSUPP;
+}
+
+static inline int security_secctx_to_lsmprop(const char *secdata, u32 seclen,
+					     struct lsm_prop *prop, int lsmid);
 {
 	return -EOPNOTSUPP;
 }

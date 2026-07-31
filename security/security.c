@@ -3965,6 +3965,13 @@ int security_lsmprop_to_secctx(struct lsm_prop *prop, struct lsm_context *cp,
 }
 EXPORT_SYMBOL(security_lsmprop_to_secctx);
 
+int security_update_lsmprop(struct lsm_prop *dest, struct lsm_prop *src,
+			    int lsmid)
+{
+	return call_int_hook(update_lsmprop, dest, src, lsmid);
+}
+EXPORT_SYMBOL(security_update_lsmprop);
+
 /**
  * security_secctx_to_secid() - Convert a secctx to a secid
  * @secdata: secctx
@@ -3981,6 +3988,31 @@ int security_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid)
 	return call_int_hook(secctx_to_secid, secdata, seclen, secid);
 }
 EXPORT_SYMBOL(security_secctx_to_secid);
+
+/**
+ * security_secctx_to_lsmprop() - Convert a secctx to a lsmprop
+ * @secdata: secctx
+ * @seclen: length of secctx
+ * @prop: prop
+ * @lsmid: which LSM the context is appropriate to.
+ *
+ * Convert security context to an lsmprop.
+ *
+ * Return: Returns 0 on success, error on failure.
+ */
+int security_secctx_to_lsmprop(const char *secdata, u32 seclen,
+			       struct lsm_prop *prop, int lsmid)
+{
+	struct lsm_static_call *scall;
+
+	lsm_for_each_hook(scall, secctx_to_lsmprop) {
+		if (lsmid != LSM_ID_UNDEF && lsmid != scall->hl->lsmid->id)
+			continue;
+		return scall->hl->hook.secctx_to_lsmprop(secdata, seclen, prop);
+	}
+	return LSM_RET_DEFAULT(secctx_to_lsmprop);
+}
+EXPORT_SYMBOL(security_secctx_to_lsmprop);
 
 /**
  * security_release_secctx() - Free a secctx buffer
