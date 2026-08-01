@@ -28,6 +28,10 @@ struct aa_label *aa_secid_to_label(u32 secid);
 int apparmor_secid_to_secctx(u32 secid, struct lsm_context *cp);
 int apparmor_lsmprop_to_secctx(struct lsm_prop *prop, struct lsm_context *cp);
 int apparmor_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid);
+int apparmor_secctx_to_lsmprop(const char *secdata, u32 seclen,
+			       struct lsm_prop *prop);
+int apparmor_update_lsmprop(struct lsm_prop *dest, struct lsm_prop *src,
+			    int lsmid);
 void apparmor_release_secctx(struct lsm_context *cp);
 
 

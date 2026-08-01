@@ -106,6 +106,29 @@ int apparmor_secctx_to_secid(const char *secdata, u32 seclen, u32 *secid)
 	return 0;
 }
 
+int apparmor_secctx_to_lsmprop(const char *secdata, u32 seclen,
+			       struct lsm_prop *prop)
+{
+	struct aa_label *label;
+
+	label = aa_label_strn_parse(&root_ns->unconfined->label, secdata,
+				    seclen, GFP_KERNEL, false, false);
+	if (IS_ERR(label))
+		return PTR_ERR(label);
+	prop->apparmor.label = label;
+
+	return 0;
+}
+
+int apparmor_update_lsmprop(struct lsm_prop *dest, struct lsm_prop *src,
+			    int lsmid)
+{
+	if (lsmid == LSM_ID_APPARMOR || lsmid == LSM_ID_UNDEF)
+		dest->apparmor.label = src->apparmor.label;
+
+	return 0;
+}
+
 void apparmor_release_secctx(struct lsm_context *cp)
 {
 	if (cp->id == LSM_ID_APPARMOR) {
