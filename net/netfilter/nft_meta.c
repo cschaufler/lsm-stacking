@@ -927,17 +927,20 @@ static const struct nla_policy nft_secmark_policy[NFTA_SECMARK_MAX + 1] = {
 
 static int nft_secmark_compute_secid(struct nft_secmark *priv)
 {
+	struct lsm_prop tmp_prop;
 	u32 tmp_secid = 0;
 	int err;
 
-	err = security_secctx_to_secid(priv->ctx, strlen(priv->ctx), &tmp_secid);
+	err = security_secctx_to_lsmprop(priv->ctx, strlen(priv->ctx),
+					 &tmp_prop, LSM_ID_UNDEF);
 	if (err)
 		return err;
 
-	if (!tmp_secid)
-		return -ENOENT;
+	tmp_secid = secxa_from_lsmprop(&tmp_prop);
+	if (tmp_secid < 0)
+		return tmp_secid;
 
-	err = security_secmark_relabel_packet(tmp_secid);
+	err = security_secmark_relabel_packet(&tmp_prop);
 	if (err)
 		return err;
 

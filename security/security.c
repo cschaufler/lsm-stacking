@@ -4646,15 +4646,15 @@ EXPORT_SYMBOL(security_inet_conn_established);
 
 /**
  * security_secmark_relabel_packet() - Check if setting a secmark is allowed
- * @secid: new secmark value
+ * @lsmprop: new secmark value
  *
  * Check if the process should be allowed to relabel packets to @secid.
  *
  * Return: Returns 0 if permission is granted.
  */
-int security_secmark_relabel_packet(u32 secid)
+int security_secmark_relabel_packet(struct lsm_prop *prop)
 {
-	return call_int_hook(secmark_relabel_packet, secid);
+	return call_int_hook(secmark_relabel_packet, prop);
 }
 EXPORT_SYMBOL(security_secmark_relabel_packet);
 

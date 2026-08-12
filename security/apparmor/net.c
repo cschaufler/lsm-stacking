@@ -8,6 +8,7 @@
  * Copyright 2009-2017 Canonical Ltd.
  */
 
+#include <linux/lsm_secxa.h>
 #include "include/af_unix.h"
 #include "include/apparmor.h"
 #include "include/audit.h"
@@ -365,11 +366,16 @@ static int aa_secmark_perm(struct aa_profile *profile, u32 request, u32 secid,
 			   struct apparmor_audit_data *ad)
 {
 	int i, ret;
+	struct lsm_prop *prop;
 	struct aa_perms perms = { };
 	struct aa_ruleset *rules = profile->label.rules[0];
 
 	if (rules->secmark_count == 0)
 		return 0;
+
+	ret = secxa_get_lsmprop(&prop, secid);
+	if (ret)
+		return ret;
 
 	for (i = 0; i < rules->secmark_count; i++) {
 		if (!rules->secmark[i].secid) {
@@ -378,7 +384,7 @@ static int aa_secmark_perm(struct aa_profile *profile, u32 request, u32 secid,
 				return ret;
 		}
 
-		if (rules->secmark[i].secid == secid ||
+		if (rules->secmark[i].secid == prop->apparmor.label->secid ||
 		    rules->secmark[i].secid == AA_SECID_WILDCARD) {
 			if (rules->secmark[i].deny)
 				perms.deny = ALL_PERMS_MASK;

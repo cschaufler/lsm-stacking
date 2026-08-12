@@ -42,6 +42,7 @@
 #include <linux/fs_context.h>
 #include <linux/fs_parser.h>
 #include <linux/watch_queue.h>
+#include <linux/lsm_secxa.h>
 #include <linux/io_uring/cmd.h>
 #include <uapi/linux/lsm.h>
 #include "smack.h"
@@ -4189,10 +4190,17 @@ static int smk_skb_to_addr_ipv6(struct sk_buff *skb, struct sockaddr_in6 *sip)
 #ifdef CONFIG_NETWORK_SECMARK
 static struct smack_known *smack_from_skb(struct sk_buff *skb)
 {
+	struct lsm_prop *prop;
+	int rc;
+
 	if (skb == NULL || skb->secmark == 0)
 		return NULL;
 
-	return smack_from_secid(skb->secmark);
+	rc = secxa_get_lsmprop(&prop, skb->secmark);
+	if (prop)
+		return prop->smack.skp;
+
+	return NULL;
 }
 #else
 static inline struct smack_known *smack_from_skb(struct sk_buff *skb)

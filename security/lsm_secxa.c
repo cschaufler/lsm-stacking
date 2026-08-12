@@ -72,8 +72,6 @@ int secxa_from_lsmprop(struct lsm_prop *prop)
 
 	xa_for_each(&secxa_xa, il, lp) {
 		if (!memcmp(prop, lp, sizeof(*prop)))
-			pr_info("%s found at index %lu\n", __func__, il);
-		if (!memcmp(prop, lp, sizeof(*prop)))
 			return il;
 	}
 
@@ -101,7 +99,21 @@ EXPORT_SYMBOL(secxa_from_lsmprop);
  */
 void secxa_set_secmark(struct sk_buff *skb, u32 secxa)
 {
-	if (!skb->secmark)
+	struct lsm_prop *olp;
+	struct lsm_prop *nlp;
+	struct lsm_prop prop;
+
+	if (!skb->secmark) {
 		skb->secmark = secxa;
+		return;
+	}
+
+	olp = xa_load(&secxa_xa, skb->secmark);
+	nlp = xa_load(&secxa_xa, secxa);
+
+	prop = *olp;
+	security_update_lsmprop(&prop, nlp, LSM_ID_UNDEF);
+
+	skb->secmark = secxa_from_lsmprop(&prop);
 }
 EXPORT_SYMBOL(secxa_set_secmark);
