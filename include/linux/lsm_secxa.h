@@ -7,6 +7,8 @@
 #ifndef __LINUX_LSM_SECXA_H
 #define __LINUX_LSM_SECXA_H
 
+#include <linux/types.h>
+
 #ifdef CONFIG_SECURITY
 
 struct lsm_prop;

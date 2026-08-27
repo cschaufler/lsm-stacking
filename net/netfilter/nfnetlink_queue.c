@@ -32,6 +32,7 @@
 #include <linux/cgroup-defs.h>
 #include <linux/rhashtable.h>
 #include <linux/jhash.h>
+#include <linux/lsm_secxa.h>
 #include <net/gso.h>
 #include <net/sock.h>
 #include <net/tcp_states.h>
@@ -606,8 +607,15 @@ static int nfqnl_get_sk_secctx(struct sk_buff *skb, struct lsm_context *ctx)
 {
 	int seclen = 0;
 #if IS_ENABLED(CONFIG_NETWORK_SECMARK)
-	if (skb->secmark)
-		seclen = security_secid_to_secctx(skb->secmark, ctx);
+	struct lsm_prop *prop;
+	int rc;
+
+	if (skb->secmark) {
+		rc = secxa_get_lsmprop(&prop, skb->secmark);
+		if (rc)
+			return 0;
+		seclen = security_lsmprop_to_secctx(prop, ctx, LSM_ID_UNDEF);
+	}
 #endif
 	return seclen;
 }

@@ -24,13 +24,17 @@ static unsigned int smack_ip_output(void *priv,
 				    const struct nf_hook_state *state)
 {
 	struct sock *sk = skb_to_full_sk(skb);
+	struct lsm_prop prop = { };
 	struct socket_smack *ssp;
-	struct smack_known *skp;
+	u32 secxa;
+	int rc;
 
 	if (sk) {
 		ssp = smack_sock(sk);
-		skp = ssp->smk_out;
-		secxa_set_secmark(skb, skp->smk_secid);
+		prop.smack.skp = ssp->smk_out;
+		rc = secxa_from_lsmprop(&prop, &secxa);
+		if (!rc)
+			secxa_set_secmark(skb, secxa);
 	}
 
 	return NF_ACCEPT;

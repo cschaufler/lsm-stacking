@@ -103,7 +103,25 @@ EXPORT_SYMBOL(secxa_from_lsmprop);
  */
 void secxa_set_secmark(struct sk_buff *skb, u32 secxa)
 {
-	if (!skb->secmark)
+	struct lsm_prop *olp;
+	struct lsm_prop *nlp;
+	struct lsm_prop prop;
+	u32 tsecxa;
+	int rc;
+
+	if (!skb->secmark) {
 		skb->secmark = secxa;
+		return;
+	}
+
+	olp = xa_load(&secxa_xa, skb->secmark);
+	nlp = xa_load(&secxa_xa, secxa);
+
+	prop = *olp;
+	security_update_lsmprop(&prop, nlp, LSM_ID_UNDEF);
+
+	rc = secxa_from_lsmprop(&prop, &tsecxa);
+	if (!rc)
+		skb->secmark = tsecxa;
 }
 EXPORT_SYMBOL(secxa_set_secmark);
